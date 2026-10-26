@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alisya Live Schedule Dashboard</title>
+  <title>Alisya Live Schedule Dashboard — Personal Stream Manager</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- React 18 & ReactDOM -->
@@ -29,7 +28,7 @@
           colors: {
             maroon: {
               DEFAULT: '#7B1113',
-              dark: '#580B0D',
+              dark: '#520B0D',
               light: '#9E1B1E',
               subtle: '#FFF5F5'
             }
@@ -38,7 +37,6 @@
       }
     }
   </script>
-
   <style>
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #F1F5F9; }
@@ -47,7 +45,6 @@
     .sticky-col { position: sticky; left: 0; z-index: 20; }
     .sticky-header { position: sticky; top: 0; z-index: 30; }
   </style>
-
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased font-sans">
   <div id="root"></div>
@@ -55,116 +52,124 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
-
-    // Master Data Akun / Brand
-    const INITIAL_ACCOUNTS = [
-      { id: 'acc_1', name: 'Alisya (Host)', role: 'Host Utama', color: '#B6D7A8' },
-      { id: 'acc_2', name: 'Mom Uung', role: 'Brand Utama', color: '#B6D7A8' },
-      { id: 'acc_3', name: 'AquaPress', role: 'Brand Shift', color: '#00FFFF' },
-      { id: 'acc_4', name: 'Back Up Moell', role: 'Backup Host', color: '#FACC15' }
+    // 3 BRAND UTAMA ALISYA + AGENDA PRIBADI
+    const DEFAULT_BRANDS = [
+      { id: 'brand_momuung', name: 'Mom Uung', desc: 'Brand Live Utama', color: '#B6D7A8', textColor: '#166534', targetHours: 60 },
+      { id: 'brand_aquapress', name: 'AquaPress', desc: 'Brand Shift Siang/Sore', color: '#38BDF8', textColor: '#0369A1', targetHours: 40 },
+      { id: 'brand_moell', name: 'Moell / Back Up Moell', desc: 'Brand Backup & Khusus', color: '#FACC15', textColor: '#854D0E', targetHours: 20 },
+      { id: 'brand_personal', name: 'Agenda Pribadi & OFF', desc: 'Meeting, Medis/RS, Rest Day', color: '#F87171', textColor: '#991B1B', targetHours: 0 }
     ];
 
-
-    // Master Data Jadwal Sesuai Spreadsheet Referensi
+    // DATA AWAL NYATA DARI SPREADSHEET ALISYA
     const INITIAL_SCHEDULES = [
-      { id: 's1', date: '2026-10-26', start_time: '14:00', end_time: '18:00', title: 'Shift 3 Mom Uung', person_id: 'acc_2', status: 'LIVE', category: 'Live Streaming', color: '#B6D7A8', notes: 'Target GMV 20 Juta' },
-      { id: 's2', date: '2026-10-26', start_time: '10:00', end_time: '12:00', title: 'Meet Aya', person_id: 'acc_1', status: 'Meeting', category: 'Meeting', color: '#00FFFF', notes: 'Briefing Outfit' },
-      { id: 's3', date: '2026-10-27', start_time: '10:00', end_time: '14:00', title: 'Shift 2 Mom Uung', person_id: 'acc_2', status: 'LIVE', category: 'Live Streaming', color: '#B6D7A8', notes: 'Sesi Siang' },
-      { id: 's4', date: '2026-10-28', start_time: '10:00', end_time: '14:00', title: 'Shift 2 Mom Uung', person_id: 'acc_2', status: 'LIVE', category: 'Live Streaming', color: '#B6D7A8', notes: 'Sesi Siang' },
-      { id: 's5', date: '2026-10-29', start_time: '00:00', end_time: '23:59', title: 'Mom Uung OFF', person_id: 'acc_2', status: 'OFF', category: 'Rest / OFF', color: '#EF4444', notes: 'Libur Rutin' },
-      { id: 's6', date: '2026-10-29', start_time: '08:00', end_time: '12:00', title: 'Aquapress Pagi', person_id: 'acc_3', status: 'LIVE', category: 'Live Streaming', color: '#00FFFF', notes: 'Shift Pagi' },
-      { id: 's7', date: '2026-10-29', start_time: '12:00', end_time: '16:00', title: 'Aquapress Siang', person_id: 'acc_3', status: 'LIVE', category: 'Live Streaming', color: '#00FFFF', notes: 'Shift Siang' },
-      { id: 's8', date: '2026-10-30', start_time: '06:00', end_time: '10:00', title: 'Shift 1 Mom Uung', person_id: 'acc_2', status: 'LIVE', category: 'Live Streaming', color: '#B6D7A8', notes: 'Shift Pagi' },
-      { id: 's9', date: '2026-10-30', start_time: '16:00', end_time: '20:00', title: 'Aquapress Sore', person_id: 'acc_3', status: 'LIVE', category: 'Live Streaming', color: '#00FFFF', notes: 'Shift Sore' },
-      { id: 's10', date: '2026-10-31', start_time: '06:00', end_time: '10:00', title: 'Shift 1 Mom Uung', person_id: 'acc_2', status: 'LIVE', category: 'Live Streaming', color: '#B6D7A8', notes: 'Weekend Promo' },
-      { id: 's11', date: '2026-11-01', start_time: '18:00', end_time: '22:00', title: 'Shift 4 Mom Uung', person_id: 'acc_2', status: 'LIVE', category: 'Live Streaming', color: '#B6D7A8', notes: 'Peak Hour' }
+      { id: 'sch_1', date: '2026-10-26', start_time: '14:00', end_time: '18:00', title: 'Shift 3 Mom Uung', brand_id: 'brand_momuung', status: 'LIVE', category: 'Live Streaming', color: '#B6D7A8', notes: 'Sesi Sore Flash Sale' },
+      { id: 'sch_2', date: '2026-10-26', start_time: '10:00', end_time: '12:00', title: 'Meet Aya', brand_id: 'brand_personal', status: 'Meeting', category: 'Meeting', color: '#38BDF8', notes: 'Review script outfit & sample produk' },
+      { id: 'sch_3', date: '2026-10-27', start_time: '10:00', end_time: '14:00', title: 'Shift 2 Mom Uung', brand_id: 'brand_momuung', status: 'LIVE', category: 'Live Streaming', color: '#B6D7A8', notes: 'Sesi Siang' },
+      { id: 'sch_4', date: '2026-10-28', start_time: '10:00', end_time: '14:00', title: 'Shift 2 Mom Uung', brand_id: 'brand_momuung', status: 'LIVE', category: 'Live Streaming', color: '#B6D7A8', notes: 'Sesi Siang' },
+      { id: 'sch_5', date: '2026-10-29', start_time: '00:00', end_time: '23:59', title: 'Mom Uung OFF', brand_id: 'brand_momuung', status: 'OFF', category: 'Rest / OFF', color: '#EF4444', notes: 'Jadwal Libur Mom Uung' },
+      { id: 'sch_6', date: '2026-10-29', start_time: '08:00', end_time: '12:00', title: 'Aquapress Pagi', brand_id: 'brand_aquapress', status: 'LIVE', category: 'Live Streaming', color: '#38BDF8', notes: 'Sesi Pagi TikTok' },
+      { id: 'sch_7', date: '2026-10-29', start_time: '12:00', end_time: '16:00', title: 'Aquapress Siang', brand_id: 'brand_aquapress', status: 'LIVE', category: 'Live Streaming', color: '#38BDF8', notes: 'Sesi Siang Shopee' },
+      { id: 'sch_8', date: '2026-10-30', start_time: '06:00', end_time: '10:00', title: 'Shift 1 Mom Uung', brand_id: 'brand_momuung', status: 'LIVE', category: 'Live Streaming', color: '#B6D7A8', notes: 'Shift Pagi' },
+      { id: 'sch_9', date: '2026-10-30', start_time: '16:00', end_time: '20:00', title: 'Aquapress Sore', brand_id: 'brand_aquapress', status: 'LIVE', category: 'Live Streaming', color: '#38BDF8', notes: 'Shift Sore' },
+      { id: 'sch_10', date: '2026-10-31', start_time: '06:00', end_time: '10:00', title: 'Shift 1 Mom Uung', brand_id: 'brand_momuung', status: 'LIVE', category: 'Live Streaming', color: '#B6D7A8', notes: 'Jumping Shift Pagi' },
+      { id: 'sch_11', date: '2026-11-01', start_time: '18:00', end_time: '22:00', title: 'Shift 4 Mom Uung', brand_id: 'brand_momuung', status: 'LIVE', category: 'Live Streaming', color: '#B6D7A8', notes: 'Jumping Shift Malam' }
     ];
-
 
     const TIME_SLOTS = [
-      { label: "12am-2am", start: "00:00", end: "02:00" },
-      { label: "2am-4am", start: "02:00", end: "04:00" },
-      { label: "4am-6am", start: "04:00", end: "06:00" },
-      { label: "6am-8am", start: "06:00", end: "08:00" },
-      { label: "8am-10am", start: "08:00", end: "10:00" },
-      { label: "10am-12pm", start: "10:00", end: "12:00" },
-      { label: "12pm-2pm", start: "12:00", end: "14:00" },
-      { label: "2pm-4pm", start: "14:00", end: "16:00" },
-      { label: "4pm-6pm", start: "16:00", end: "18:00" },
-      { label: "6pm-8pm", start: "18:00", end: "20:00" },
-      { label: "8pm-10pm", start: "20:00", end: "22:00" },
-      { label: "10pm-12am", start: "22:00", end: "24:00" }
+      { label: "12am-2am", start: "00:00", end: "02:00", sHour: 0, eHour: 2 },
+      { label: "2am-4am", start: "02:00", end: "04:00", sHour: 2, eHour: 4 },
+      { label: "4am-6am", start: "04:00", end: "06:00", sHour: 4, eHour: 6 },
+      { label: "6am-8am", start: "06:00", end: "08:00", sHour: 6, eHour: 8 },
+      { label: "8am-10am", start: "08:00", end: "10:00", sHour: 8, eHour: 10 },
+      { label: "10am-12pm", start: "10:00", end: "12:00", sHour: 10, eHour: 12 },
+      { label: "12pm-2pm", start: "12:00", end: "14:00", sHour: 12, eHour: 14 },
+      { label: "2pm-4pm", start: "14:00", end: "16:00", sHour: 14, eHour: 16 },
+      { label: "4pm-6pm", start: "16:00", end: "18:00", sHour: 16, eHour: 18 },
+      { label: "6pm-8pm", start: "18:00", end: "20:00", sHour: 18, eHour: 20 },
+      { label: "8pm-10pm", start: "20:00", end: "22:00", sHour: 20, eHour: 22 },
+      { label: "10pm-12am", start: "22:00", end: "24:00", sHour: 22, eHour: 24 }
     ];
 
-
     function App() {
-      const [view, setView] = useState('dashboard'); // 'dashboard', 'calendar', 'list'
-      const [accounts, setAccounts] = useState(() => {
-        const local = localStorage.getItem('alisya_app_accounts');
-        return local ? JSON.parse(local) : INITIAL_ACCOUNTS;
+      const [view, setView] = useState('dashboard'); // 'dashboard', 'calendar', 'list', 'quick', 'settings'
+      
+      const [brands, setBrands] = useState(() => {
+        const local = localStorage.getItem('alisya_brands_v2');
+        return local ? JSON.parse(local) : DEFAULT_BRANDS;
       });
+
       const [schedules, setSchedules] = useState(() => {
-        const local = localStorage.getItem('alisya_app_schedules');
+        const local = localStorage.getItem('alisya_schedules_v2');
         return local ? JSON.parse(local) : INITIAL_SCHEDULES;
       });
 
-
-      // Simpan otomatis ke LocalStorage
+      // Simpan perubahan ke LocalStorage otomatis
       useEffect(() => {
-        localStorage.setItem('alisya_app_accounts', JSON.stringify(accounts));
-        localStorage.setItem('alisya_app_schedules', JSON.stringify(schedules));
-      }, [accounts, schedules]);
+        localStorage.setItem('alisya_brands_v2', JSON.stringify(brands));
+        localStorage.setItem('alisya_schedules_v2', JSON.stringify(schedules));
+      }, [brands, schedules]);
 
-
-      // Bulan Aktif (Default Oktober 2026)
+      // Bulan Aktif (Default Oktober 2026 sesuai data spreadsheet)
       const [currentYear, setCurrentYear] = useState(2026);
-      const [currentMonth, setCurrentMonth] = useState(9); // 9 = Oktober
+      const [currentMonth, setCurrentMonth] = useState(9); // 0-indexed: 9 = Oktober, 4 = Mei, 5 = Juni
 
+      // Filter state
+      const [filterBrand, setFilterBrand] = useState('ALL');
+      const [filterStatus, setFilterStatus] = useState('ALL');
+      const [searchQuery, setSearchQuery] = useState('');
 
       // Modal State
       const [modalOpen, setModalOpen] = useState(false);
       const [selectedSchedule, setSelectedSchedule] = useState(null);
+      const [conflictWarning, setConflictWarning] = useState(null);
+
       const [formData, setFormData] = useState({
         id: '',
         date: '2026-10-27',
         start_time: '10:00',
         end_time: '12:00',
         title: '',
-        person_id: 'acc_2',
+        brand_id: 'brand_momuung',
         status: 'LIVE',
         category: 'Live Streaming',
         color: '#B6D7A8',
         notes: ''
       });
 
+      // Quick repeat state
+      const [repeatUntil, setRepeatUntil] = useState('');
+      const [isWeeklyRepeat, setIsWeeklyRepeat] = useState(false);
 
+      // Toast Notification
       const [toast, setToast] = useState('');
       const notify = (msg) => {
         setToast(msg);
         setTimeout(() => setToast(''), 3000);
       };
 
-
       const daysInMonth = useMemo(() => {
         return new Date(currentYear, currentMonth + 1, 0).getDate();
       }, [currentYear, currentMonth]);
-
 
       const monthName = useMemo(() => {
         return new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(new Date(currentYear, currentMonth, 1));
       }, [currentYear, currentMonth]);
 
-
       // Buka Modal Tambah Baru
       const handleOpenCreate = (dateStr = null, slotStart = '10:00', slotEnd = '12:00') => {
         setSelectedSchedule(null);
+        setConflictWarning(null);
+        setIsWeeklyRepeat(false);
+        setRepeatUntil('');
+        
+        const targetDate = dateStr || `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
         setFormData({
           id: 'sch_' + Date.now(),
-          date: dateStr || `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`,
+          date: targetDate,
           start_time: slotStart,
           end_time: slotEnd,
           title: '',
-          person_id: accounts[0]?.id || 'acc_2',
+          brand_id: 'brand_momuung',
           status: 'LIVE',
           category: 'Live Streaming',
           color: '#B6D7A8',
@@ -173,56 +178,104 @@
         setModalOpen(true);
       };
 
-
       // Buka Modal Edit
       const handleOpenEdit = (sch) => {
         setSelectedSchedule(sch);
+        setConflictWarning(null);
+        setIsWeeklyRepeat(false);
         setFormData({ ...sch });
         setModalOpen(true);
       };
 
+      // Cek Konflik Waktu Alisya (Karena Alisya orang yang sama, tidak boleh live di 2 brand bersamaan)
+      const checkConflict = (date, start, end, excludeId = null) => {
+        const toMin = t => {
+          const [h, m] = t.split(':').map(Number);
+          return h * 60 + m;
+        };
+        const newStart = toMin(start);
+        const newEnd = toMin(end);
 
-      // Simpan Perubahan Jadwal
-      const handleSave = (e) => {
-        e.preventDefault();
+        return schedules.find(s => {
+          if (excludeId && s.id === excludeId) return false;
+          if (s.date !== date) return false;
+          if (s.start_time === '00:00' && s.end_time === '23:59') return false; // Abaikan entri seharian penuh
+          const existStart = toMin(s.start_time);
+          const existEnd = toMin(s.end_time);
+          return Math.max(newStart, existStart) < Math.min(newEnd, existEnd);
+        });
+      };
+
+      // Simpan Jadwal
+      const handleSave = (e, bypassConflict = false) => {
+        if (e && e.preventDefault) e.preventDefault();
+        
         if (!formData.title.trim()) {
-          alert('Judul shift / kegiatan harus diisi!');
+          notify('Judul jadwal / shift harus diisi!');
           return;
         }
 
+        // Cek konflik jam Alisya
+        if (!bypassConflict && formData.status !== 'OFF') {
+          const conflict = checkConflict(formData.date, formData.start_time, formData.end_time, selectedSchedule?.id);
+          if (conflict) {
+            const conflictBrand = brands.find(b => b.id === conflict.brand_id)?.name || 'Jadwal lain';
+            setConflictWarning(`Peringatan: Alisya sudah ada jadwal "${conflict.title}" (${conflictBrand}) pada jam ${conflict.start_time} - ${conflict.end_time}. Tetap simpan?`);
+            return;
+          }
+        }
 
-        let autoColor = formData.color;
-        if (formData.status === 'LIVE') autoColor = '#B6D7A8';
-        if (formData.status === 'OFF') autoColor = '#EF4444';
-        if (formData.status === 'Meeting') autoColor = '#00FFFF';
-        if (formData.status === 'Sakit / Izin') autoColor = '#7B1113';
+        // Warna otomatis sesuai brand & status
+        let chosenColor = formData.color;
+        const brandObj = brands.find(b => b.id === formData.brand_id);
+        if (formData.status === 'LIVE' && brandObj) {
+          chosenColor = brandObj.color;
+        } else if (formData.status === 'OFF') {
+          chosenColor = '#EF4444';
+        } else if (formData.status === 'Meeting') {
+          chosenColor = '#38BDF8';
+        } else if (formData.status === 'Sakit / Medis') {
+          chosenColor = '#7B1113';
+        }
 
-
-        const payload = { ...formData, color: autoColor };
-
+        const payload = { ...formData, color: chosenColor };
 
         if (selectedSchedule) {
           setSchedules(prev => prev.map(s => s.id === selectedSchedule.id ? payload : s));
-          notify('Jadwal berhasil diperbarui!');
+          notify('Jadwal Alisya berhasil diperbarui!');
         } else {
-          setSchedules(prev => [...prev, payload]);
-          notify('Jadwal baru berhasil ditambahkan!');
+          // Buat jadwal baru (mendukung jadwal berulang mingguan)
+          let itemsToAdd = [payload];
+          if (isWeeklyRepeat && repeatUntil && repeatUntil >= formData.date) {
+            let nextDate = new Date(formData.date);
+            const endDate = new Date(repeatUntil);
+            itemsToAdd = [];
+            while (nextDate <= endDate) {
+              const dStr = nextDate.toISOString().split('T')[0];
+              itemsToAdd.push({
+                ...payload,
+                id: 'sch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                date: dStr
+              });
+              nextDate.setDate(nextDate.getDate() + 7);
+            }
+          }
+          setSchedules(prev => [...prev, ...itemsToAdd]);
+          notify(`${itemsToAdd.length} Jadwal Alisya berhasil disimpan!`);
         }
         setModalOpen(false);
       };
 
-
       // Hapus Jadwal
       const handleDelete = (id) => {
-        if (confirm('Yakin ingin menghapus jadwal ini?')) {
+        if (confirm('Yakin ingin menghapus jadwal Alisya ini?')) {
           setSchedules(prev => prev.filter(s => s.id !== id));
           setModalOpen(false);
           notify('Jadwal telah dihapus.');
         }
       };
 
-
-      // Perhitungan Rekap & KPI
+      // Filter Jadwal
       const currentMonthSchedules = useMemo(() => {
         return schedules.filter(s => {
           const [y, m] = s.date.split('-').map(Number);
@@ -230,94 +283,135 @@
         });
       }, [schedules, currentYear, currentMonth]);
 
+      const filteredSchedules = useMemo(() => {
+        return currentMonthSchedules.filter(s => {
+          if (filterBrand !== 'ALL' && s.brand_id !== filterBrand) return false;
+          if (filterStatus !== 'ALL' && s.status !== filterStatus) return false;
+          if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            const matchTitle = s.title.toLowerCase().includes(q);
+            const matchNotes = (s.notes || '').toLowerCase().includes(q);
+            if (!matchTitle && !matchNotes) return false;
+          }
+          return true;
+        });
+      }, [currentMonthSchedules, filterBrand, filterStatus, searchQuery]);
 
+      // STATISTIK KHUSUS ALISYA PER BRAND
       const stats = useMemo(() => {
-        let totalLive = 0;
-        let totalOff = 0;
-        let totalSick = 0;
+        let totalLiveShifts = 0;
+        let totalLiveHours = 0;
+        let totalOffDays = 0;
         let totalMeeting = 0;
-
+        let totalMedical = 0;
 
         currentMonthSchedules.forEach(s => {
-          if (s.status === 'LIVE') totalLive++;
-          else if (s.status === 'OFF') totalOff++;
-          else if (s.status === 'Sakit / Izin') totalSick++;
-          else if (s.status === 'Meeting') totalMeeting++;
+          if (s.status === 'LIVE') {
+            totalLiveShifts++;
+            const [sh, sm] = s.start_time.split(':').map(Number);
+            const [eh, em] = s.end_time.split(':').map(Number);
+            let dur = (eh * 60 + em - (sh * 60 + sm)) / 60;
+            if (dur < 0) dur += 24;
+            totalLiveHours += dur;
+          } else if (s.status === 'OFF') {
+            totalOffDays++;
+          } else if (s.status === 'Meeting') {
+            totalMeeting++;
+          } else if (s.status === 'Sakit / Medis') {
+            totalMedical++;
+          }
         });
 
+        // REKAPITULASI DETAIL PER BRAND
+        const perBrand = brands.map(brand => {
+          const list = currentMonthSchedules.filter(s => s.brand_id === brand.id);
+          const liveList = list.filter(s => s.status === 'LIVE');
+          const offList = list.filter(s => s.status === 'OFF');
+          
+          let brandHours = 0;
+          liveList.forEach(s => {
+            const [sh, sm] = s.start_time.split(':').map(Number);
+            const [eh, em] = s.end_time.split(':').map(Number);
+            let dur = (eh * 60 + em - (sh * 60 + sm)) / 60;
+            if (dur < 0) dur += 24;
+            brandHours += dur;
+          });
 
-        const perAccount = accounts.map(acc => {
-          const list = currentMonthSchedules.filter(s => s.person_id === acc.id);
-          const liveCount = list.filter(s => s.status === 'LIVE').length;
-          const offCount = list.filter(s => s.status === 'OFF').length;
           return {
-            name: acc.name,
+            ...brand,
             totalShift: list.length,
-            liveCount,
-            offCount,
-            totalJam: liveCount * 2
+            liveCount: liveList.length,
+            offCount: offList.length,
+            totalJam: Math.round(brandHours * 10) / 10,
+            completionRate: brand.targetHours > 0 ? Math.min(100, Math.round((brandHours / brand.targetHours) * 100)) : 100
           };
         });
 
-
         return {
-          totalLive,
-          totalOff,
-          totalSick,
+          totalLiveShifts,
+          totalLiveHours: Math.round(totalLiveHours * 10) / 10,
+          totalOffDays,
           totalMeeting,
+          totalMedical,
           totalAll: currentMonthSchedules.length,
-          perAccount
+          perBrand
         };
-      }, [currentMonthSchedules, accounts]);
+      }, [currentMonthSchedules, brands]);
 
-
-      // Chart.js Binding
+      // Chart.js Visualizations
       const donutCanvasRef = useRef(null);
       const barCanvasRef = useRef(null);
       const donutChartRef = useRef(null);
       const barChartRef = useRef(null);
 
-
       useEffect(() => {
         if (view !== 'dashboard') return;
 
-
+        // Donut Chart: Proporsi Jam Live per Brand
         if (donutCanvasRef.current) {
           if (donutChartRef.current) donutChartRef.current.destroy();
+          const liveBrands = stats.perBrand.filter(b => b.id !== 'brand_personal');
           donutChartRef.current = new Chart(donutCanvasRef.current, {
             type: 'doughnut',
             data: {
-              labels: ['LIVE', 'OFF', 'Sakit/Izin', 'Meeting'],
+              labels: liveBrands.map(b => b.name),
               datasets: [{
-                data: [stats.totalLive, stats.totalOff, stats.totalSick, stats.totalMeeting],
-                backgroundColor: ['#B6D7A8', '#EF4444', '#7B1113', '#00FFFF'],
+                data: liveBrands.map(b => b.totalJam),
+                backgroundColor: liveBrands.map(b => b.color),
                 borderWidth: 2
               }]
             },
             options: {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { legend: { position: 'bottom' } }
+              plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                  callbacks: {
+                    label: (context) => ` ${context.label}: ${context.raw} Jam Live`
+                  }
+                }
+              }
             }
           });
         }
 
-
+        // Bar Chart: Jam Live vs Hari OFF Alisya per Brand
         if (barCanvasRef.current) {
           if (barChartRef.current) barChartRef.current.destroy();
           barChartRef.current = new Chart(barCanvasRef.current, {
             type: 'bar',
             data: {
-              labels: stats.perAccount.map(a => a.name),
+              labels: stats.perBrand.map(b => b.name),
               datasets: [
                 {
                   label: 'Shift LIVE',
-                  data: stats.perAccount.map(a => a.liveCount),
+                  data: stats.perBrand.map(b => b.liveCount),
                   backgroundColor: '#B6D7A8'
                 },
                 {
-                  label: 'Hari OFF',
-                  data: stats.perAccount.map(a => a.offCount),
+                  label: 'Hari OFF / Libur',
+                  data: stats.perBrand.map(b => b.offCount),
                   backgroundColor: '#EF4444'
                 }
               ]
@@ -331,16 +425,41 @@
         }
       }, [view, stats]);
 
+      // Ekspor ke CSV
+      const handleExportCSV = () => {
+        let headers = ['Tanggal', 'Jam Mulai', 'Jam Selesai', 'Brand', 'Judul Shift', 'Status', 'Catatan'];
+        let rows = currentMonthSchedules.map(s => {
+          const bName = brands.find(b => b.id === s.brand_id)?.name || s.brand_id;
+          return [
+            s.date,
+            s.start_time,
+            s.end_time,
+            `"${bName}"`,
+            `"${s.title.replace(/"/g, '""')}"`,
+            s.status,
+            `"${(s.notes || '').replace(/"/g, '""')}"`
+          ];
+        });
+        const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const encoded = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encoded);
+        link.setAttribute('download', `Jadwal_Live_Alisya_${currentYear}_${currentMonth + 1}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        notify('Jadwal berhasil diekspor ke CSV!');
+      };
 
       return (
         <div className="min-h-screen flex flex-col">
+          {/* TOAST ALERT */}
           {toast && (
-            <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-bounce text-xs font-bold">
+            <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce text-xs font-bold">
               <span>✅</span>
               <span>{toast}</span>
             </div>
           )}
-
 
           {/* HEADER NAVIGASI */}
           <header className="bg-maroon text-white px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-lg sticky top-0 z-40">
@@ -349,36 +468,34 @@
                 A
               </div>
               <div>
-                <h1 className="font-extrabold text-base tracking-wide">Alisya Live Schedule</h1>
-                <p className="text-xs text-rose-200">Interactive Dashboard & Calendar</p>
+                <h1 className="font-extrabold text-base tracking-wide flex items-center gap-2">
+                  <span>Alisya Live Schedule</span>
+                  <span className="bg-rose-500/30 text-rose-200 text-[10px] px-2 py-0.5 rounded-full font-bold">Personal Host</span>
+                </h1>
+                <p className="text-xs text-rose-200">Kelola Jadwal Live di Mom Uung, AquaPress & Moell</p>
               </div>
             </div>
 
-
-            {/* TAB MENU */}
-            <div className="flex bg-black/20 p-1 rounded-xl">
-              <button
-                onClick={() => setView('dashboard')}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${view === 'dashboard' ? 'bg-white text-maroon shadow' : 'text-rose-100 hover:text-white'}`}
-              >
-                📊 Dashboard Statistik
-              </button>
-              <button
-                onClick={() => setView('calendar')}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${view === 'calendar' ? 'bg-white text-maroon shadow' : 'text-rose-100 hover:text-white'}`}
-              >
-                🗓️ Kalender Bulanan
-              </button>
-              <button
-                onClick={() => setView('list')}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${view === 'list' ? 'bg-white text-maroon shadow' : 'text-rose-100 hover:text-white'}`}
-              >
-                📋 Daftar Jadwal
-              </button>
+            {/* TAB NAVIGASI */}
+            <div className="flex bg-black/25 p-1 rounded-xl gap-1">
+              {[
+                { id: 'dashboard', label: '📊 Ringkasan & Statistik' },
+                { id: 'calendar', label: '🗓️ Kalender Bulanan' },
+                { id: 'list', label: '📋 Daftar Jadwal' },
+                { id: 'quick', label: '⚡ Input Cepat' },
+                { id: 'settings', label: '⚙️ Brand & Warna' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setView(tab.id)}
+                  className={`px-3.5 py-2 rounded-lg text-xs font-bold transition ${view === tab.id ? 'bg-white text-maroon shadow' : 'text-rose-100 hover:text-white'}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
 
-
-            {/* NAVIGASI BULAN & TOMBOL INPUT */}
+            {/* NAVIGASI BULAN & TOMBOL TAMBAH JADWAL */}
             <div className="flex items-center gap-3">
               <div className="flex items-center bg-white/10 rounded-xl px-2 py-1 text-xs font-bold border border-white/20">
                 <button
@@ -387,131 +504,161 @@
                     else { setCurrentMonth(m => m - 1); }
                   }}
                   className="px-2 py-1 hover:bg-white/20 rounded"
+                  title="Bulan Sebelumnya"
                 >◀</button>
-                <span className="px-3">{monthName} {currentYear}</span>
+                <span className="px-3 font-semibold">{monthName} {currentYear}</span>
                 <button
                   onClick={() => {
                     if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(y => y + 1); }
                     else { setCurrentMonth(m => m + 1); }
                   }}
                   className="px-2 py-1 hover:bg-white/20 rounded"
+                  title="Bulan Berikutnya"
                 >▶</button>
               </div>
-
 
               <button
                 onClick={() => handleOpenCreate()}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow transition flex items-center gap-1.5 active:scale-95"
               >
-                <span className="text-sm">+</span>
+                <span className="text-sm font-extrabold">+</span>
                 <span>Tambah Jadwal</span>
               </button>
             </div>
           </header>
 
-
-          {/* MAIN CONTENT */}
+          {/* KONTEN UTAMA */}
           <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
-            
-            {/* TAB DASHBOARD */}
+
+            {/* 1. TAMPILAN DASHBOARD & REKAP PER BRAND */}
             {view === 'dashboard' && (
               <div className="space-y-6 animate-fade-in">
+                {/* 4 KARTU KPI UTAMA ALISYA */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
-                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total LIVE</div>
-                      <div className="text-3xl font-extrabold text-emerald-600 mt-2">{stats.totalLive}</div>
+                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Jam Live Alisya</div>
+                      <div className="text-3xl font-extrabold text-maroon mt-2">{stats.totalLiveHours} <span className="text-sm font-normal text-slate-500">Jam</span></div>
                     </div>
-                    <div className="text-[11px] text-slate-500 mt-3 pt-2 border-t border-slate-100">
-                      ≈ <span className="font-bold text-slate-700">{stats.totalLive * 2} Jam</span> Streaming
-                    </div>
-                  </div>
-
-
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                    <div>
-                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total OFF</div>
-                      <div className="text-3xl font-extrabold text-rose-600 mt-2">{stats.totalOff}</div>
-                    </div>
-                    <div className="text-[11px] text-slate-500 mt-3 pt-2 border-t border-slate-100">
-                      Hari Istirahat / Libur
+                    <div className="text-[11px] text-slate-500 mt-3 pt-2 border-t border-slate-100 flex justify-between">
+                      <span>Total Shift Live:</span>
+                      <span className="font-bold text-emerald-600">{stats.totalLiveShifts} Sesi</span>
                     </div>
                   </div>
 
-
                   <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
-                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sakit / Izin</div>
-                      <div className="text-3xl font-extrabold text-maroon mt-2">{stats.totalSick}</div>
+                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Hari OFF / Libur</div>
+                      <div className="text-3xl font-extrabold text-rose-600 mt-2">{stats.totalOffDays} <span className="text-sm font-normal text-slate-500">Hari</span></div>
                     </div>
                     <div className="text-[11px] text-slate-500 mt-3 pt-2 border-t border-slate-100">
-                      Emergency Leave / Ke RS
+                      Rest Day & Jadwal Libur
                     </div>
                   </div>
 
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Meeting & Briefing</div>
+                      <div className="text-3xl font-extrabold text-sky-600 mt-2">{stats.totalMeeting} <span className="text-sm font-normal text-slate-500">Sesi</span></div>
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-3 pt-2 border-t border-slate-100">
+                      Meet Aya & Koordinasi Script
+                    </div>
+                  </div>
 
                   <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
-                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Meeting</div>
-                      <div className="text-3xl font-extrabold text-cyan-600 mt-2">{stats.totalMeeting}</div>
+                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Medis / Rumah Sakit</div>
+                      <div className="text-3xl font-extrabold text-red-700 mt-2">{stats.totalMedical} <span className="text-sm font-normal text-slate-500">Hari</span></div>
                     </div>
                     <div className="text-[11px] text-slate-500 mt-3 pt-2 border-t border-slate-100">
-                      Briefing & Scripting
+                      MCU, Dokter, Emergency
                     </div>
                   </div>
                 </div>
 
-
-                {/* DIAGRAM VISUALISASI */}
+                {/* DIAGRAM VISUALISASI PROPORSI BRAND */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                      <span>🍩</span> Distribusi Status Jadwal ({monthName})
+                    <h3 className="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
+                      <span>🍩</span> Proporsi Jam Live per Brand ({monthName})
                     </h3>
-                    <div className="h-64 relative">
+                    <p className="text-[11px] text-slate-500 mb-4">Pembagian jam streaming Alisya di Mom Uung, AquaPress & Moell</p>
+                    <div className="h-60 relative">
                       <canvas ref={donutCanvasRef}></canvas>
                     </div>
                   </div>
 
-
                   <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                      <span>📊</span> Perbandingan Shift per Akun / Brand
+                    <h3 className="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
+                      <span>📊</span> Perbandingan Shift Live vs Hari Libur
                     </h3>
-                    <div className="h-64 relative">
+                    <p className="text-[11px] text-slate-500 mb-4">Rincian aktivitas Alisya pada masing-masing akun brand</p>
+                    <div className="h-60 relative">
                       <canvas ref={barCanvasRef}></canvas>
                     </div>
                   </div>
                 </div>
 
+                {/* TABEL REKAPITULASI RESMI ALISYA PER BRAND (SESUAI REQUEST) */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">
+                  <div className="flex justify-between items-center flex-wrap gap-2">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <span>🎥</span> Rekapitulasi Shift Live Alisya per Brand
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Rekap performa jadwal siaran langsung pribadi Alisya untuk periode {monthName} {currentYear}
+                      </p>
+                    </div>
+                    <button onClick={handleExportCSV} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+                      <span>📥</span> Ekspor CSV
+                    </button>
+                  </div>
 
-                {/* TABEL STATISTIK PER AKUN */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-                  <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <span>👥</span> Rekapitulasi Rinci Mom Uung & AquaPress
-                  </h3>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs text-slate-700">
                       <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold">
                         <tr>
-                          <th className="px-4 py-3">Nama Akun / Brand</th>
-                          <th className="px-4 py-3 text-center">Total Shift</th>
+                          <th className="px-4 py-3">Nama Brand / Akun</th>
+                          <th className="px-4 py-3 text-center">Total Entri</th>
                           <th className="px-4 py-3 text-center">Shift LIVE</th>
-                          <th className="px-4 py-3 text-center">Hari OFF</th>
+                          <th className="px-4 py-3 text-center">Hari OFF / Libur</th>
                           <th className="px-4 py-3 text-center">Estimasi Jam Live</th>
-                          <th className="px-4 py-3 text-right">Status</th>
+                          <th className="px-4 py-3 text-center">Target Bulanan</th>
+                          <th className="px-4 py-3 text-right">Status Keterisian</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
-                        {stats.perAccount.map((acc, i) => (
-                          <tr key={i} className="hover:bg-slate-50 transition">
-                            <td className="px-4 py-3 font-bold text-slate-800">{acc.name}</td>
-                            <td className="px-4 py-3 text-center font-semibold">{acc.totalShift}</td>
-                            <td className="px-4 py-3 text-center font-bold text-emerald-600">{acc.liveCount}</td>
-                            <td className="px-4 py-3 text-center font-bold text-rose-600">{acc.offCount}</td>
-                            <td className="px-4 py-3 text-center font-bold text-maroon">{acc.totalJam} Jam</td>
-                            <td className="px-4 py-3 text-right">
-                              <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded text-[10px]">Aktif</span>
+                        {stats.perBrand.map((brand) => (
+                          <tr key={brand.id} className="hover:bg-slate-50 transition">
+                            <td className="px-4 py-3.5">
+                              <div className="flex items-center gap-2.5">
+                                <span className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: brand.color }}></span>
+                                <div>
+                                  <div className="font-bold text-slate-900 text-sm">{brand.name}</div>
+                                  <div className="text-[11px] text-slate-500">{brand.desc}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5 text-center font-semibold text-slate-700">{brand.totalShift}</td>
+                            <td className="px-4 py-3.5 text-center font-bold text-emerald-600 text-sm">{brand.liveCount}</td>
+                            <td className="px-4 py-3.5 text-center font-bold text-rose-600 text-sm">{brand.offCount}</td>
+                            <td className="px-4 py-3.5 text-center font-extrabold text-maroon text-sm">{brand.totalJam} Jam</td>
+                            <td className="px-4 py-3.5 text-center text-slate-500">
+                              {brand.targetHours > 0 ? `${brand.targetHours} Jam` : '-'}
+                            </td>
+                            <td className="px-4 py-3.5 text-right">
+                              {brand.targetHours > 0 ? (
+                                <div className="inline-flex items-center gap-2">
+                                  <div className="w-16 bg-slate-200 rounded-full h-2">
+                                    <div className="bg-emerald-600 h-2 rounded-full" style={{ width: `${brand.completionRate}%` }}></div>
+                                  </div>
+                                  <span className="font-bold text-[11px] text-slate-800">{brand.completionRate}%</span>
+                                </div>
+                              ) : (
+                                <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded text-[10px]">Pribadi</span>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -522,22 +669,42 @@
               </div>
             )}
 
-
-            {/* TAB KALENDER */}
+            {/* 2. TAMPILAN KALENDER SPREADSHEET BULANAN */}
             {view === 'calendar' && (
               <div className="space-y-4">
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between text-xs">
-                  <div className="font-semibold text-slate-600">
-                    💡 <span className="font-bold text-slate-800">Petunjuk:</span> Klik pada <span className="text-emerald-700 font-bold">sel kosong</span> untuk membuat jadwal baru, atau klik pada <span className="text-maroon font-bold">kotak jadwal</span> untuk mengedit/menghapusnya.
-                  </div>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#B6D7A8] inline-block border"></span> LIVE</span>
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#00FFFF] inline-block border"></span> Meeting</span>
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#EF4444] inline-block border"></span> OFF</span>
+                    <span className="font-bold text-slate-700">Filter Brand:</span>
+                    <select
+                      value={filterBrand}
+                      onChange={e => setFilterBrand(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-maroon"
+                    >
+                      <option value="ALL">Semua Brand (Mom Uung, AquaPress, Moell)</option>
+                      {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+
+                    <select
+                      value={filterStatus}
+                      onChange={e => setFilterStatus(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-maroon"
+                    >
+                      <option value="ALL">Semua Status</option>
+                      <option value="LIVE">LIVE Saja</option>
+                      <option value="OFF">OFF Saja</option>
+                      <option value="Meeting">Meeting Saja</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#B6D7A8] border"></span> Mom Uung</span>
+                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#38BDF8] border"></span> AquaPress</span>
+                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#FACC15] border"></span> Moell</span>
+                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#EF4444] border"></span> OFF</span>
                   </div>
                 </div>
 
-
+                {/* GRID KALENDER */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                   <div className="overflow-x-auto relative" style={{ maxHeight: '72vh' }}>
                     <table className="w-full border-collapse text-xs select-none">
@@ -550,7 +717,7 @@
                             const d = i + 1;
                             const dayName = new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(new Date(currentYear, currentMonth, d));
                             return (
-                              <th key={d} className="px-2 py-2 text-center font-bold border-b border-r border-rose-900 min-w-[60px]">
+                              <th key={d} className="px-2 py-2 text-center font-bold border-b border-r border-rose-900 min-w-[62px]">
                                 <div className="text-[10px] text-rose-200">{dayName}</div>
                                 <div className="text-sm font-extrabold">{d}</div>
                               </th>
@@ -568,11 +735,11 @@
                               const day = i + 1;
                               const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                               
-                              const slotItems = schedules.filter(s => {
+                              // Cari jadwal yang cocok di slot ini
+                              const slotItems = filteredSchedules.filter(s => {
                                 if (s.date !== dateStr) return false;
                                 return (s.start_time < slot.end && s.end_time > slot.start) || (s.start_time === '00:00' && s.end_time === '23:59');
                               });
-
 
                               return (
                                 <td
@@ -581,60 +748,58 @@
                                   className="border-r border-slate-200 p-1 align-top h-14 hover:bg-rose-50/40 cursor-pointer transition relative"
                                   title={`Klik untuk tambah jadwal tanggal ${dateStr} jam ${slot.label}`}
                                 >
-                                  {slotItems.map(item => (
-                                    <div
-                                      key={item.id}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleOpenEdit(item);
-                                      }}
-                                      className="p-1.5 rounded-lg font-bold text-[10px] leading-tight text-slate-900 shadow-sm border border-black/10 hover:scale-105 active:scale-95 transition cursor-pointer mb-1 overflow-hidden"
-                                      style={{ backgroundColor: item.color }}
-                                      title="Klik untuk Edit / Hapus"
-                                    >
-                                      <div className="truncate">{item.title}</div>
-                                      <div className="text-[9px] font-mono text-slate-700">{item.start_time}-{item.end_time}</div>
-                                    </div>
-                                  ))}
+                                  {slotItems.map(item => {
+                                    const bObj = brands.find(b => b.id === item.brand_id);
+                                    return (
+                                      <div
+                                        key={item.id}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleOpenEdit(item);
+                                        }}
+                                        className="p-1.5 rounded-lg font-bold text-[10px] leading-tight text-slate-900 shadow-sm border border-black/10 hover:scale-105 active:scale-95 transition cursor-pointer mb-1 overflow-hidden"
+                                        style={{ backgroundColor: item.color }}
+                                      >
+                                        <div className="truncate">{item.title}</div>
+                                        <div className="text-[9px] font-mono text-slate-700">{item.start_time}-{item.end_time}</div>
+                                      </div>
+                                    );
+                                  })}
                                 </td>
                               );
                             })}
                           </tr>
                         ))}
 
-
-                        {/* ROW REKAP DI BAWAH GRID */}
+                        {/* BARIS REKAP BRAND DI BAWAH SPREADSHEET (PERSIS REFERENSI) */}
                         <tr className="bg-slate-200 font-bold border-t-2 border-slate-300">
                           <td colSpan={daysInMonth + 1} className="px-4 py-2 text-slate-700 uppercase tracking-wider text-[11px]">
-                            📌 Rekapitulasi Harian Brand / Akun
+                            📌 Rekapitulasi Shift Alisya Harian per Brand
                           </td>
                         </tr>
 
-
-                        {accounts.map(acc => (
-                          <tr key={acc.id} className="border-b border-slate-200 bg-slate-50">
+                        {brands.filter(b => b.id !== 'brand_personal').map(brand => (
+                          <tr key={brand.id} className="border-b border-slate-200 bg-slate-50">
                             <td className="sticky-col bg-slate-100 px-3 py-2 font-bold text-slate-800 border-r border-slate-200 whitespace-nowrap">
-                              {acc.name}
+                              {brand.name}
                             </td>
                             {Array.from({ length: daysInMonth }).map((_, i) => {
                               const day = i + 1;
                               const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                              const accDayItems = schedules.filter(s => s.person_id === acc.id && s.date === dateStr);
-
+                              const brandItems = schedules.filter(s => s.brand_id === brand.id && s.date === dateStr);
 
                               let text = '-';
                               let bg = '';
-                              if (accDayItems.length > 0) {
-                                const isOff = accDayItems.some(s => s.status === 'OFF');
+                              if (brandItems.length > 0) {
+                                const isOff = brandItems.some(s => s.status === 'OFF');
                                 if (isOff) {
                                   text = 'OFF';
                                   bg = 'bg-rose-100 text-rose-800 font-bold';
                                 } else {
-                                  text = `${accDayItems.length} Shift`;
+                                  text = `${brandItems.length} Shift`;
                                   bg = 'bg-emerald-100 text-emerald-800 font-bold';
                                 }
                               }
-
 
                               return (
                                 <td key={day} className={`border-r border-slate-200 p-1 text-center text-[10px] ${bg}`}>
@@ -651,16 +816,37 @@
               </div>
             )}
 
-
-            {/* TAB DAFTAR JADWAL */}
+            {/* 3. TAMPILAN DAFTAR SEMUA JADWAL */}
             {view === 'list' && (
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-bold text-slate-800 text-base">Semua Jadwal Terdaftar ({schedules.length})</h3>
-                  <button onClick={() => handleOpenCreate()} className="bg-maroon text-white px-4 py-2 rounded-xl text-xs font-bold">
-                    + Tambah Baru
-                  </button>
+                <div className="flex justify-between items-center flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      placeholder="Cari jadwal atau catatan..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-64 focus:outline-none focus:ring-1 focus:ring-maroon"
+                    />
+                    <select
+                      value={filterBrand}
+                      onChange={e => setFilterBrand(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                    >
+                      <option value="ALL">Semua Brand</option>
+                      {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={handleExportCSV} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold">
+                      📥 Ekspor CSV
+                    </button>
+                    <button onClick={() => handleOpenCreate()} className="bg-maroon hover:bg-maroon-dark text-white px-4 py-2 rounded-xl text-xs font-bold">
+                      + Tambah Jadwal
+                    </button>
+                  </div>
                 </div>
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs text-slate-700">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold">
@@ -668,31 +854,31 @@
                         <th className="px-4 py-3">Tanggal</th>
                         <th className="px-4 py-3">Jam</th>
                         <th className="px-4 py-3">Judul Shift</th>
-                        <th className="px-4 py-3">Akun / Talent</th>
+                        <th className="px-4 py-3">Brand</th>
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3">Catatan</th>
                         <th className="px-4 py-3 text-right">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
-                      {schedules.map(s => {
-                        const acc = accounts.find(a => a.id === s.person_id);
+                      {filteredSchedules.map(s => {
+                        const bObj = brands.find(b => b.id === s.brand_id);
                         return (
                           <tr key={s.id} className="hover:bg-slate-50">
-                            <td className="px-4 py-3 font-semibold text-slate-900">{s.date}</td>
+                            <td className="px-4 py-3 font-semibold text-slate-900 whitespace-nowrap">{s.date}</td>
                             <td className="px-4 py-3 font-mono">{s.start_time} - {s.end_time}</td>
                             <td className="px-4 py-3 font-bold text-slate-800">
                               <span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: s.color }}></span>
                               {s.title}
                             </td>
-                            <td className="px-4 py-3">{acc?.name || s.person_id}</td>
+                            <td className="px-4 py-3 font-medium text-slate-700">{bObj?.name || s.brand_id}</td>
                             <td className="px-4 py-3">
-                              <span className="px-2 py-0.5 rounded font-bold text-[10px]" style={{ backgroundColor: s.color + '44', color: s.color === '#00FFFF' ? '#0891B2' : s.color }}>
+                              <span className="px-2 py-0.5 rounded font-bold text-[10px]" style={{ backgroundColor: s.color + '44', color: s.color === '#38BDF8' ? '#0369A1' : s.color }}>
                                 {s.status}
                               </span>
                             </td>
-                            <td className="px-4 py-3 italic text-slate-500">{s.notes || '-'}</td>
-                            <td className="px-4 py-3 text-right space-x-2">
+                            <td className="px-4 py-3 italic text-slate-500 max-w-xs truncate">{s.notes || '-'}</td>
+                            <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                               <button onClick={() => handleOpenEdit(s)} className="text-blue-600 font-bold hover:underline">Edit</button>
                               <button onClick={() => handleDelete(s.id)} className="text-rose-600 font-bold hover:underline">Hapus</button>
                             </td>
@@ -704,59 +890,197 @@
                 </div>
               </div>
             )}
+
+            {/* 4. TAMPILAN INPUT CEPAT & REPEAT */}
+            {view === 'quick' && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6 max-w-2xl mx-auto">
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">⚡ Input Jadwal Berulang untuk Alisya</h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Buat jadwal rutin Alisya (misal: Shift 2 Mom Uung setiap hari kerja atau setiap minggu) secara otomatis tanpa klik satu per satu.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                  <div className="font-bold text-xs text-slate-800">Langkah Membuat Jadwal Rutin:</div>
+                  <ol className="list-decimal list-inside text-xs text-slate-600 space-y-1">
+                    <li>Klik tombol <b>"+ Tambah Jadwal"</b> di kanan atas.</li>
+                    <li>Centang opsi <b>"Ulangi Jadwal Setiap Minggu pada Hari Ini"</b>.</li>
+                    <li>Tentukan tanggal akhir perulangan (misal: hingga akhir bulan).</li>
+                    <li>Sistem akan menduplikasi jadwal ke seluruh tanggal yang ditentukan!</li>
+                  </ol>
+                </div>
+
+                <div className="flex justify-center pt-2">
+                  <button
+                    onClick={() => {
+                      handleOpenCreate();
+                      setIsWeeklyRepeat(true);
+                    }}
+                    className="bg-maroon hover:bg-maroon-dark text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow transition"
+                  >
+                    Mulai Input Berulang Sekarang →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 5. TAMPILAN PENGATURAN BRAND & WARNA */}
+            {view === 'settings' && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6 max-w-3xl mx-auto">
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">⚙️ Pengaturan Brand & Palet Warna</h3>
+                  <p className="text-xs text-slate-500 mt-1">Sesuaikan nama brand, target jam streaming, dan warna identitas masing-masing.</p>
+                </div>
+
+                <div className="space-y-3">
+                  {brands.map(b => (
+                    <div key={b.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={b.color}
+                          onChange={e => {
+                            const newCol = e.target.value;
+                            setBrands(prev => prev.map(item => item.id === b.id ? { ...item, color: newCol } : item));
+                          }}
+                          className="w-10 h-10 rounded border-none cursor-pointer"
+                        />
+                        <div>
+                          <input
+                            type="text"
+                            value={b.name}
+                            onChange={e => {
+                              const newName = e.target.value;
+                              setBrands(prev => prev.map(item => item.id === b.id ? { ...item, name: newName } : item));
+                            }}
+                            className="font-bold text-sm text-slate-800 bg-transparent border-b border-transparent focus:border-maroon focus:outline-none"
+                          />
+                          <div className="text-[11px] text-slate-500">{b.desc}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-600">Target:</span>
+                        <input
+                          type="number"
+                          value={b.targetHours}
+                          onChange={e => {
+                            const newT = Number(e.target.value);
+                            setBrands(prev => prev.map(item => item.id === b.id ? { ...item, targetHours: newT } : item));
+                          }}
+                          className="w-16 bg-white border border-slate-300 rounded px-2 py-1 text-xs text-center font-bold"
+                        />
+                        <span className="text-xs text-slate-600">Jam/bln</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-4 border-t border-slate-200 flex justify-between items-center">
+                  <button
+                    onClick={() => {
+                      if (confirm('Kembalikan semua brand ke pengaturan awal?')) {
+                        setBrands(DEFAULT_BRANDS);
+                        notify('Pengaturan brand direset.');
+                      }
+                    }}
+                    className="text-xs text-slate-500 hover:text-slate-800 underline"
+                  >
+                    Reset Brand ke Default
+                  </button>
+                  <button
+                    onClick={() => notify('Pengaturan warna dan brand berhasil disimpan!')}
+                    className="bg-maroon hover:bg-maroon-dark text-white px-5 py-2 rounded-xl text-xs font-bold transition"
+                  >
+                    Simpan Perubahan
+                  </button>
+                </div>
+              </div>
+            )}
           </main>
 
-
-          {/* MODAL INPUT & EDIT */}
+          {/* MODAL FORM INPUT & EDIT JADWAL */}
           {modalOpen && (
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-150">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-150">
                 <div className="bg-maroon text-white p-5 flex justify-between items-center">
-                  <h3 className="font-bold text-base">{selectedSchedule ? 'Edit Jadwal' : 'Tambah Jadwal Baru'}</h3>
+                  <div>
+                    <h3 className="font-bold text-base">{selectedSchedule ? 'Edit Jadwal Alisya' : 'Tambah Jadwal Live Alisya'}</h3>
+                    <p className="text-xs text-rose-200">Personal Live Schedule Manager</p>
+                  </div>
                   <button onClick={() => setModalOpen(false)} className="text-rose-200 hover:text-white font-bold text-lg">✕</button>
                 </div>
 
+                <form onSubmit={e => handleSave(e, false)} className="p-6 space-y-4 text-xs max-h-[75vh] overflow-y-auto">
+                  {/* WARNING OVERLAP KONFLIK */}
+                  {conflictWarning && (
+                    <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 space-y-2">
+                      <div className="font-bold flex items-center gap-1.5">
+                        <span>⚠️</span> Peringatan Jadwal Bentrok!
+                      </div>
+                      <p className="text-[11px]">{conflictWarning}</p>
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleSave(null, true)}
+                          className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-bold text-[11px]"
+                        >
+                          Tetap Simpan (Bypass)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConflictWarning(null)}
+                          className="bg-slate-200 text-slate-800 px-3 py-1.5 rounded-lg font-bold text-[11px]"
+                        >
+                          Ubah Jam
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-                <form onSubmit={handleSave} className="p-6 space-y-4 text-xs">
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Judul Jadwal / Shift *</label>
+                    <label className="block font-bold text-slate-700 mb-1">Judul Shift / Aktivitas *</label>
                     <input
                       type="text"
                       required
                       value={formData.title}
                       onChange={e => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="Contoh: Shift 3 Mom Uung / Aquapress Siang"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-maroon"
+                      placeholder="Contoh: Shift 3 Mom Uung / Aquapress Siang / Meet Aya"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-maroon"
                     />
                   </div>
 
-
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">Akun / Brand *</label>
+                      <label className="block font-bold text-slate-700 mb-1">Brand Penugasan *</label>
                       <select
-                        value={formData.person_id}
-                        onChange={e => setFormData({ ...formData, person_id: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-maroon"
+                        value={formData.brand_id}
+                        onChange={e => {
+                          const chosen = e.target.value;
+                          const bObj = brands.find(b => b.id === chosen);
+                          setFormData({ ...formData, brand_id: chosen, color: bObj ? bObj.color : formData.color });
+                        }}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-maroon"
                       >
-                        {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                        {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                       </select>
                     </div>
+
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">Status *</label>
+                      <label className="block font-bold text-slate-700 mb-1">Status Kehadiran *</label>
                       <select
                         value={formData.status}
                         onChange={e => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-maroon"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-maroon"
                       >
-                        <option value="LIVE">LIVE (Hijau)</option>
-                        <option value="Meeting">Meeting (Cyan)</option>
-                        <option value="OFF">OFF / Libur (Merah)</option>
-                        <option value="Sakit / Izin">Sakit / Izin (Maroon)</option>
+                        <option value="LIVE">LIVE Streaming</option>
+                        <option value="OFF">OFF / Rest Day</option>
+                        <option value="Meeting">Meeting / Briefing</option>
+                        <option value="Sakit / Medis">Sakit / Medis / RS</option>
                       </select>
                     </div>
                   </div>
-
 
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">Tanggal *</label>
@@ -768,7 +1092,6 @@
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-maroon"
                     />
                   </div>
-
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -793,6 +1116,31 @@
                     </div>
                   </div>
 
+                  {/* OPSI JADWAL BERULANG (Hanya saat tambah baru) */}
+                  {!selectedSchedule && (
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                      <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isWeeklyRepeat}
+                          onChange={e => setIsWeeklyRepeat(e.target.checked)}
+                          className="rounded text-maroon focus:ring-maroon"
+                        />
+                        <span>Ulangi Jadwal Setiap Minggu pada Hari Ini</span>
+                      </label>
+                      {isWeeklyRepeat && (
+                        <div className="flex items-center gap-2 pt-1">
+                          <span className="text-slate-600">Hingga tanggal:</span>
+                          <input
+                            type="date"
+                            value={repeatUntil}
+                            onChange={e => setRepeatUntil(e.target.value)}
+                            className="bg-white border border-slate-300 rounded px-2 py-1 text-xs"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">Catatan Tambahan</label>
@@ -800,49 +1148,48 @@
                       rows="2"
                       value={formData.notes}
                       onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="Script, target GMV, atau arahan khusus..."
+                      placeholder="Script, sample outfit, target penjualan..."
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-maroon"
                     ></textarea>
+                  </div>
 
+                  <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
+                    {selectedSchedule ? (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(selectedSchedule.id)}
+                        className="text-rose-600 hover:text-rose-800 font-bold"
+                      >
+                        Hapus Jadwal
+                      </button>
+                    ) : <div></div>}
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setModalOpen(false)}
+                        className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl font-bold"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="submit"
+                        className="bg-maroon hover:bg-maroon-dark text-white px-5 py-2 rounded-xl font-bold shadow transition"
+                      >
+                        Simpan Jadwal
+                      </button>
+                    </div>
+                  </div>
+                </form>
               </div>
-
-              <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
-                {selectedSchedule ? (
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(selectedSchedule.id)}
-                    className="text-rose-600 hover:text-rose-800 font-bold"
-                  >
-                    Hapus Jadwal
-                  </button>
-                ) : <div></div>}
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setModalOpen(false)}
-                    className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl font-bold"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="bg-maroon hover:bg-maroon-dark text-white px-5 py-2 rounded-xl font-bold shadow"
-                  >
-                    Simpan
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  );
-}
+      );
+    }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
   </script>
 </body>
 </html>
