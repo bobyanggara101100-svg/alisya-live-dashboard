@@ -28,7 +28,7 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <script>
     tailwind.config = {
@@ -44,13 +44,14 @@
   </script>
   <style>
     /* Haluskan scrollbar */
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #F1F5F9; }
     ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 999px; }
     .scrollbar-none::-webkit-scrollbar { display: none; }
     .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
     .sticky-col { position: sticky; left: 0; z-index: 20; }
     .sticky-header { position: sticky; top: 0; z-index: 30; }
-    .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom, 16px) + 72px); }
+    .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom, 16px) + 76px); }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased font-sans select-none pb-safe md:pb-8">
@@ -121,7 +122,21 @@
     };
 
     function App() {
-      const [activeTab, setActiveTab] = useState('agenda'); // 'agenda', 'calendar', 'kpi', 'list', 'colors'
+      // 🌟 MODE SWITCHER: 'mobile' (Tampilan HP) vs 'pc' (Tampilan PC / Web Spreadsheet)
+      const [displayMode, setDisplayMode] = useState(() => {
+        const saved = localStorage.getItem('alisya_display_mode');
+        if (saved) return saved;
+        return window.innerWidth < 768 ? 'mobile' : 'pc';
+      });
+
+      const handleSetDisplayMode = (mode) => {
+        setDisplayMode(mode);
+        localStorage.setItem('alisya_display_mode', mode);
+      };
+
+      const [activeTab, setActiveTab] = useState('agenda'); // Untuk Mode HP: 'agenda', 'calendar', 'kpi', 'list', 'colors'
+      const [pcSubTab, setPcSubTab] = useState('calendar'); // Untuk Mode PC: 'calendar', 'dashboard', 'list', 'colors'
+
       const [schedules, setSchedules] = useState(INITIAL_SCHEDULES);
       const [brands, setBrands] = useState(DEFAULT_BRANDS_INIT);
 
@@ -253,7 +268,7 @@
         const eMin = toMin(end);
         return schedules.find(s => {
           if (s.id === excludeId || s.date !== date) return false;
-          if (s.start_time === '00:00' && s.end_time === '23:59') return false; // Abaikan jadwal seharian penuh
+          if (s.start_time === '00:00' && s.end_time === '23:59') return false;
           const exS = toMin(s.start_time);
           const exE = toMin(s.end_time);
           return Math.max(sMin, exS) < Math.min(eMin, exE);
@@ -394,7 +409,9 @@
       const barInst = useRef(null);
 
       useEffect(() => {
-        if (activeTab !== 'kpi') return;
+        const shouldRenderCharts = (displayMode === 'mobile' && activeTab === 'kpi') || (displayMode === 'pc' && pcSubTab === 'dashboard');
+        if (!shouldRenderCharts) return;
+
         if (donutCanvas.current) {
           if (donutInst.current) donutInst.current.destroy();
           donutInst.current = new Chart(donutCanvas.current, {
@@ -424,7 +441,7 @@
             options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
           });
         }
-      }, [activeTab, stats]);
+      }, [displayMode, activeTab, pcSubTab, stats]);
 
       return (
         <div className="min-h-screen flex flex-col bg-slate-100">
@@ -436,7 +453,7 @@
           )}
 
           {/* HEADER UTAMA */}
-          <header className="bg-maroon text-white px-4 md:px-6 py-3.5 flex items-center justify-between shadow-lg sticky top-0 z-40">
+          <header className="bg-maroon text-white px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3 shadow-lg sticky top-0 z-40">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center font-black text-rose-300 text-xl border border-white/20 shadow-inner">
                 ✨
@@ -455,6 +472,22 @@
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* 🌟 DUAL-MODE TOGGLE SWITCHER (HP vs PC) */}
+            <div className="flex items-center bg-black/30 p-1 rounded-2xl border border-white/10 shadow-inner">
+              <button
+                onClick={() => handleSetDisplayMode('mobile')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 ${displayMode === 'mobile' ? 'bg-white text-maroon shadow-md' : 'text-rose-100 hover:text-white'}`}
+              >
+                <span>📱</span><span>Mode HP</span>
+              </button>
+              <button
+                onClick={() => handleSetDisplayMode('pc')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 ${displayMode === 'pc' ? 'bg-white text-maroon shadow-md' : 'text-rose-100 hover:text-white'}`}
+              >
+                <span>💻</span><span>Mode PC / Web</span>
+              </button>
             </div>
 
             {/* NAVIGASI BULAN & ADMIN ACTION */}
@@ -477,563 +510,736 @@
             </div>
           </header>
 
-          {/* BILAH MENU HORIZONTAL MULTI-FITUR */}
-          <nav className="bg-white border-b border-slate-200 px-3 md:px-6 py-2 overflow-x-auto scrollbar-none flex items-center gap-2 sticky top-[58px] z-30 shadow-sm">
-            <button
-              onClick={() => setActiveTab('agenda')}
-              className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${activeTab === 'agenda' ? 'bg-maroon text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
-            >
-              <span>📱</span><span>Agenda Harian</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('calendar')}
-              className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${activeTab === 'calendar' ? 'bg-maroon text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
-            >
-              <span>📅</span><span>Kalender Spreadsheet</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('kpi')}
-              className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${activeTab === 'kpi' ? 'bg-maroon text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
-            >
-              <span>📊</span><span>KPI & Grafik</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('list')}
-              className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${activeTab === 'list' ? 'bg-maroon text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
-            >
-              <span>📋</span><span>Daftar Semua Jadwal</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('colors')}
-              className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${activeTab === 'colors' ? 'bg-maroon text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
-            >
-              <span>🎨</span><span>Atur Warna Brand</span>
-            </button>
-            <button
-              onClick={exportCSV}
-              className="flex-shrink-0 ml-auto bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 active:scale-95"
-            >
-              <span>📥</span><span>Ekspor CSV (Excel)</span>
-            </button>
-          </nav>
-
-          {/* AREA KONTEN UTAMA */}
-          <main className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-5">
-            
-            {/* VIEW 1: AGENDA HARIAN (MOBILE-FIRST) */}
-            {activeTab === 'agenda' && (
-              <div className="space-y-4">
-                {/* RADAR LIVE STREAM TERDEKAT */}
-                <div className="bg-gradient-to-r from-maroon to-rose-900 text-white rounded-3xl p-5 shadow-lg relative overflow-hidden">
-                  <div className="relative z-10 flex flex-wrap justify-between items-center gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-rose-200">Radar Jadwal Alisya</span>
-                      </div>
-                      <h2 className="text-lg font-black mt-1">
-                        {getHariNama(selectedDate)}, {selectedDate}
-                      </h2>
-                      <p className="text-xs text-rose-100 mt-0.5">
-                        {selectedDaySchedules.length} Sesi Terjadwal • Total {selectedDaySchedules.filter(s=>s.status==='LIVE').length * 2} Jam Siaran Langsung
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={shareToWhatsApp}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-3.5 py-2 rounded-2xl text-xs font-extrabold shadow flex items-center gap-1.5 active:scale-95 transition"
-                      >
-                        <span>📲</span><span>Share WhatsApp</span>
-                      </button>
-                      {isAdmin && (
-                        <button
-                          onClick={() => handleOpenCreate(selectedDate)}
-                          className="bg-white text-maroon px-4 py-2 rounded-2xl text-xs font-black shadow active:scale-95 transition flex items-center gap-1"
-                        >
-                          <span>+</span><span>Tambah</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
+          {/* ========================================================= */}
+          {/* 🌟 1. TAMPILAN KHUSUS MODE PC / WEB SPREADSHEET DESKTOP   */}
+          {/* ========================================================= */}
+          {displayMode === 'pc' && (
+            <div className="flex-1 flex flex-col">
+              {/* SUB-NAVBAR MODE PC */}
+              <div className="bg-white border-b border-slate-200 px-6 py-2.5 flex items-center justify-between shadow-sm sticky top-[60px] z-30">
+                <div className="flex items-center gap-2 text-xs font-extrabold">
+                  <button
+                    onClick={() => setPcSubTab('calendar')}
+                    className={`px-4 py-2 rounded-xl transition flex items-center gap-2 ${pcSubTab === 'calendar' ? 'bg-maroon text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+                  >
+                    <span>📅</span><span>Kalender Spreadsheet 24 Jam</span>
+                  </button>
+                  <button
+                    onClick={() => setPcSubTab('dashboard')}
+                    className={`px-4 py-2 rounded-xl transition flex items-center gap-2 ${pcSubTab === 'dashboard' ? 'bg-maroon text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+                  >
+                    <span>📊</span><span>KPI & Diagram Grafik</span>
+                  </button>
+                  <button
+                    onClick={() => setPcSubTab('list')}
+                    className={`px-4 py-2 rounded-xl transition flex items-center gap-2 ${pcSubTab === 'list' ? 'bg-maroon text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+                  >
+                    <span>📋</span><span>Daftar Lengkap Semua Jadwal</span>
+                  </button>
+                  <button
+                    onClick={() => setPcSubTab('colors')}
+                    className={`px-4 py-2 rounded-xl transition flex items-center gap-2 ${pcSubTab === 'colors' ? 'bg-maroon text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+                  >
+                    <span>🎨</span><span>Atur Warna Brand</span>
+                  </button>
                 </div>
 
-                {/* HORIZONTAL DATE PILL SELECTOR */}
-                <div className="bg-white p-3 rounded-3xl border border-slate-200 shadow-sm">
-                  <div className="flex items-center justify-between mb-2 px-1">
-                    <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">🗓️ Kalender Tanggal ({monthName})</span>
-                    <span className="text-[11px] font-bold text-slate-400">Geser untuk pilih ❯</span>
-                  </div>
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                    {Array.from({ length: daysInMonth }).map((_, i) => {
-                      const day = i + 1;
-                      const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                      const isSelected = selectedDate === dateStr;
-                      const dayName = new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(new Date(currentYear, currentMonth, day));
-                      const dayShifts = schedules.filter(s => s.date === dateStr);
-                      const isWeekend = dayName === 'Sab' || dayName === 'Min';
-
-                      return (
-                        <button
-                          key={day}
-                          onClick={() => setSelectedDate(dateStr)}
-                          className={`flex-shrink-0 w-12 py-2.5 rounded-2xl flex flex-col items-center justify-center transition active:scale-95 ${isSelected ? 'bg-maroon text-white shadow-md scale-105' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'}`}
-                        >
-                          <span className={`text-[10px] font-bold ${isSelected ? 'text-rose-200' : isWeekend ? 'text-rose-600' : 'text-slate-400'}`}>{dayName}</span>
-                          <span className="text-sm font-black">{day}</span>
-                          <div className="flex gap-0.5 mt-1 h-1.5">
-                            {dayShifts.slice(0, 3).map((s, idx) => (
-                              <span key={idx} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isSelected ? '#FFFFFF' : s.color }}></span>
-                            ))}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* FEED KARTU JADWAL HARIAN */}
-                <div className="space-y-3">
-                  {selectedDaySchedules.length === 0 ? (
-                    <div className="bg-white rounded-3xl p-8 text-center border border-slate-200 shadow-sm space-y-2">
-                      <div className="text-5xl">☕</div>
-                      <div className="font-extrabold text-base text-slate-800">Hari Ini Tidak Ada Jadwal Live</div>
-                      <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                        Alisya tidak memiliki jadwal siaran atau agenda pada tanggal ini.
-                      </p>
-                      {isAdmin && (
-                        <button
-                          onClick={() => handleOpenCreate(selectedDate)}
-                          className="mt-2 bg-maroon text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow active:scale-95"
-                        >
-                          + Tambah Jadwal Pada Tanggal Ini
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    selectedDaySchedules.map(item => {
-                      const brand = brands.find(b => b.id === item.brand_id);
-                      return (
-                        <div
-                          key={item.id}
-                          onClick={() => handleOpenEdit(item)}
-                          className="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm flex items-start justify-between gap-3 active:scale-[0.99] transition cursor-pointer relative overflow-hidden hover:shadow-md"
-                        >
-                          <div className="w-2 absolute left-0 top-0 bottom-0" style={{ backgroundColor: item.color }}></div>
-                          <div className="space-y-2 pl-2 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-mono text-xs font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-xl">
-                                ⏰ {item.start_time} - {item.end_time}
-                              </span>
-                              <span className="text-[10px] font-black px-2.5 py-1 rounded-xl uppercase tracking-wider" style={{ backgroundColor: item.color + '44', color: '#0F172A' }}>
-                                {item.status === 'LIVE' ? '🟢 LIVE' : item.status === 'OFF' ? '☕ OFF' : item.status === 'Meeting' ? '💬 Meeting' : '🏥 Medis'}
-                              </span>
-                              <span className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                                <span>{brand?.emoji || '🏷️'}</span>
-                                <span>{brand?.name || item.brand_id}</span>
-                              </span>
-                            </div>
-
-                            <div className="font-black text-base text-slate-900 leading-snug">
-                              {item.title}
-                            </div>
-
-                            {item.notes && (
-                              <div className="bg-amber-50/80 border border-amber-200/60 p-2.5 rounded-2xl text-[11px] text-amber-900 font-medium flex items-start gap-1.5">
-                                <span>📝</span>
-                                <span>{item.notes}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {isAdmin && (
-                            <div className="flex flex-col items-end gap-1">
-                              <span className="text-xs text-blue-600 font-extrabold">Edit ❯</span>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDuplicate(item); }}
-                                className="text-[10px] text-slate-500 hover:text-slate-800 font-bold bg-slate-100 px-2 py-1 rounded-lg"
-                                title="Salin Jadwal"
-                              >
-                                📋 Salin
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* VIEW 2: KALENDER SPREADSHEET 24 JAM */}
-            {activeTab === 'calendar' && (
-              <div className="space-y-4">
-                <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="text-slate-600">
-                    {isAdmin ? (
-                      <span>💡 <strong className="text-slate-800">Mode Admin:</strong> Klik sel kosong untuk buat jadwal, klik kotak jadwal untuk edit/hapus.</span>
-                    ) : (
-                      <span>👀 <strong className="text-slate-800">Mode Publik:</strong> Jadwal tersinkronisasi otomatis dari cloud.</span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3 font-semibold">
-                    {brands.map(b => (
-                      <span key={b.id} className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-full border border-black/10" style={{ backgroundColor: b.color }}></span>
-                        <span>{b.emoji} {b.name}</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                  <div className="overflow-x-auto relative" style={{ maxHeight: '72vh' }}>
-                    <table className="w-full border-collapse text-xs select-none">
-                      <thead>
-                        <tr className="bg-maroon text-white sticky-header">
-                          <th className="sticky-col bg-maroon px-3 py-3 text-left font-bold border-b border-r border-rose-900 min-w-[110px]">
-                            JAM \ TGL
-                          </th>
-                          {Array.from({ length: daysInMonth }).map((_, i) => {
-                            const d = i + 1;
-                            const dayName = new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(new Date(currentYear, currentMonth, d));
-                            return (
-                              <th key={d} className="px-2 py-2 text-center font-bold border-b border-r border-rose-900 min-w-[55px]">
-                                <div className="text-[9px] text-rose-200">{dayName}</div>
-                                <div className="text-sm font-black">{d}</div>
-                              </th>
-                            );
-                          })}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {TIME_SLOTS.map(slot => (
-                          <tr key={slot.label} className="border-b border-slate-200 hover:bg-slate-50/50">
-                            <td className="sticky-col bg-slate-50 px-2 py-2 font-mono font-bold text-slate-700 border-r border-slate-200 text-[10px] whitespace-nowrap">
-                              {slot.label}
-                            </td>
-                            {Array.from({ length: daysInMonth }).map((_, i) => {
-                              const day = i + 1;
-                              const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                              const slotItems = schedules.filter(s => {
-                                if (s.date !== dateStr) return false;
-                                return (s.start_time < slot.end && s.end_time > slot.start) || (s.start_time === '00:00' && s.end_time === '23:59');
-                              });
-
-                              return (
-                                <td
-                                  key={day}
-                                  onClick={() => handleOpenCreate(dateStr, slot.start, slot.end)}
-                                  className={`border-r border-slate-200 p-1 align-top h-12 relative transition ${isAdmin ? 'hover:bg-rose-50/40 cursor-pointer' : ''}`}
-                                >
-                                  {slotItems.map(item => (
-                                    <div
-                                      key={item.id}
-                                      onClick={(e) => { e.stopPropagation(); handleOpenEdit(item); }}
-                                      className="p-1 rounded-lg font-bold text-[9px] text-slate-900 shadow-sm border border-black/10 truncate cursor-pointer mb-1 leading-tight"
-                                      style={{ backgroundColor: item.color }}
-                                      title={item.title}
-                                    >
-                                      {item.title}
-                                    </div>
-                                  ))}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-
-                        {/* REKAPITULASI BRAND DI BAWAH KALENDER */}
-                        <tr className="bg-slate-200 font-extrabold border-t-2 border-slate-300">
-                          <td colSpan={daysInMonth + 1} className="px-4 py-2 text-slate-700 uppercase tracking-wider text-[11px]">
-                            📌 Rekapitulasi Harian Brand
-                          </td>
-                        </tr>
-
-                        {brands.map(b => (
-                          <tr key={b.id} className="border-b border-slate-200 bg-slate-50">
-                            <td className="sticky-col bg-slate-100 px-3 py-2 font-bold text-slate-800 border-r border-slate-200 whitespace-nowrap text-[11px]">
-                              {b.emoji} {b.name}
-                            </td>
-                            {Array.from({ length: daysInMonth }).map((_, i) => {
-                              const day = i + 1;
-                              const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                              const dayItems = schedules.filter(s => s.brand_id === b.id && s.date === dateStr);
-
-                              let text = '-';
-                              let bg = '';
-                              if (dayItems.length > 0) {
-                                if (dayItems.some(s => s.status === 'OFF')) {
-                                  text = 'OFF';
-                                  bg = 'bg-rose-100 text-rose-800 font-bold';
-                                } else {
-                                  text = `${dayItems.length} Shift`;
-                                  bg = 'bg-emerald-100 text-emerald-800 font-bold';
-                                }
-                              }
-
-                              return (
-                                <td key={day} className={`border-r border-slate-200 p-1 text-center text-[10px] ${bg}`}>
-                                  {text}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* VIEW 3: KPI & STATISTIK */}
-            {activeTab === 'kpi' && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
-                    <div className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                      <span>🟢</span><span>Total LIVE</span>
-                    </div>
-                    <div className="text-3xl font-black text-emerald-600 mt-1">{stats.totalLive}</div>
-                    <div className="text-[10px] text-slate-400 mt-1 font-bold">≈ {stats.totalLive * 2} Jam Streaming</div>
-                  </div>
-                  <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
-                    <div className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                      <span>☕</span><span>Hari OFF</span>
-                    </div>
-                    <div className="text-3xl font-black text-rose-600 mt-1">{stats.totalOff}</div>
-                    <div className="text-[10px] text-slate-400 mt-1">Hari Istirahat</div>
-                  </div>
-                  <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
-                    <div className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                      <span>🏥</span><span>Izin Medis</span>
-                    </div>
-                    <div className="text-3xl font-black text-maroon mt-1">{stats.totalSick}</div>
-                    <div className="text-[10px] text-slate-400 mt-1">RS / Sakit</div>
-                  </div>
-                  <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
-                    <div className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                      <span>💬</span><span>Meeting</span>
-                    </div>
-                    <div className="text-3xl font-black text-cyan-600 mt-1">{stats.totalMeeting}</div>
-                    <div className="text-[10px] text-slate-400 mt-1">Briefing Agenda</div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-                    <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider mb-3">🍩 Distribusi Waktu Alisya ({monthName})</h3>
-                    <div className="h-60 relative"><canvas ref={donutCanvas}></canvas></div>
-                  </div>
-                  <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-                    <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider mb-3">📊 Beban Jam Live per Brand</h3>
-                    <div className="h-60 relative"><canvas ref={barCanvas}></canvas></div>
-                  </div>
-                </div>
-
-                {/* TABEL REKAP KPI */}
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5">
-                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-3">📋 Rincian Jam Kerja Alisya</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-200">
-                        <tr>
-                          <th className="px-4 py-3">Brand</th>
-                          <th className="px-4 py-3 text-center">Total Shift</th>
-                          <th className="px-4 py-3 text-center">Shift LIVE</th>
-                          <th className="px-4 py-3 text-center">Hari OFF</th>
-                          <th className="px-4 py-3 text-center">Total Jam</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200">
-                        {stats.perBrand.map((b, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50">
-                            <td className="px-4 py-3 font-bold text-slate-800 flex items-center gap-2">
-                              <span>{b.emoji}</span><span>{b.name}</span>
-                            </td>
-                            <td className="px-4 py-3 text-center font-semibold">{b.totalShift}</td>
-                            <td className="px-4 py-3 text-center font-bold text-emerald-600">{b.liveCount}</td>
-                            <td className="px-4 py-3 text-center font-bold text-rose-600">{b.offCount}</td>
-                            <td className="px-4 py-3 text-center font-black text-maroon">{b.totalJam} Jam</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* VIEW 4: DAFTAR SEMUA JADWAL (SEARCH & FILTER LENGKAP) */}
-            {activeTab === 'list' && (
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 space-y-4">
-                <div className="flex flex-wrap justify-between items-center gap-3">
-                  <h3 className="font-black text-slate-800 text-sm md:text-base">
-                    Semua Jadwal Terdaftar ({filteredSchedules.length})
-                  </h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={exportCSV}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 active:scale-95"
+                  >
+                    <span>📥</span><span>Ekspor CSV (Excel)</span>
+                  </button>
                   {isAdmin && (
-                    <button onClick={() => handleOpenCreate()} className="bg-maroon hover:bg-maroon-dark text-white px-4 py-2 rounded-2xl text-xs font-bold shadow active:scale-95 transition">
-                      + Tambah Baru
+                    <button
+                      onClick={() => handleOpenCreate()}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-black shadow flex items-center gap-1.5 active:scale-95 transition"
+                    >
+                      <span>+</span><span>Tambah Jadwal</span>
                     </button>
                   )}
                 </div>
+              </div>
 
-                {/* 🔍 BARIS FILTER & SEARCH */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs font-semibold">
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="🔍 Cari nama shift, catatan, atau tanggal..."
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-maroon focus:outline-none"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-500 whitespace-nowrap">Brand:</span>
-                    <select
-                      value={filterBrand}
-                      onChange={e => setFilterBrand(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
-                    >
-                      <option value="ALL">Semua Brand</option>
-                      {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-500 whitespace-nowrap">Status:</span>
-                    <select
-                      value={filterStatus}
-                      onChange={e => setFilterStatus(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
-                    >
-                      <option value="ALL">Semua Status</option>
-                      <option value="LIVE">🟢 LIVE</option>
-                      <option value="Meeting">💬 Meeting</option>
-                      <option value="OFF">☕ OFF</option>
-                      <option value="Sakit / Medis">🏥 Sakit / Medis</option>
-                    </select>
-                  </div>
-                </div>
+              {/* KONTEN PC SUB-TABS */}
+              <div className="p-6 max-w-[1600px] w-full mx-auto space-y-6">
+                {/* PC TAB 1: SPREADSHEET 24 JAM */}
+                {pcSubTab === 'calendar' && (
+                  <div className="space-y-4">
+                    {/* LEGENDA BRAND DI DESKTOP */}
+                    <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between text-xs">
+                      <div className="text-slate-600 font-medium">
+                        {isAdmin ? (
+                          <span>💡 <strong>Mode Admin:</strong> Klik sel jam kosong untuk menambah shift, atau klik kotak jadwal yang ada untuk mengedit / menghapus.</span>
+                        ) : (
+                          <span>👀 <strong>Mode Publik:</strong> Jadwal terisi secara realtime. Klik <strong>Login</strong> untuk mengelola jadwal.</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 font-bold">
+                        {brands.map(b => (
+                          <span key={b.id} className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                            <span className="w-3.5 h-3.5 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: b.color }}></span>
+                            <span>{b.emoji} {b.name}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-bold">
-                      <tr>
-                        <th className="px-4 py-3">Hari</th>
-                        <th className="px-4 py-3">Tanggal</th>
-                        <th className="px-4 py-3">Jam</th>
-                        <th className="px-4 py-3">Judul Shift</th>
-                        <th className="px-4 py-3">Brand</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Catatan</th>
-                        {isAdmin && <th className="px-4 py-3 text-right">Aksi</th>}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {filteredSchedules.length === 0 ? (
-                        <tr><td colSpan="8" className="text-center py-8 text-slate-400 font-bold">Tidak ada jadwal yang cocok dengan pencarian Anda.</td></tr>
-                      ) : (
-                        filteredSchedules.map(s => {
-                          const brand = brands.find(b => b.id === s.brand_id);
-                          const namaHari = getHariNama(s.date);
-                          const isWeekend = namaHari === 'Sabtu' || namaHari === 'Minggu';
+                    {/* TABEL SPREADSHEET BESAR PC */}
+                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                      <div className="overflow-x-auto relative" style={{ maxHeight: '75vh' }}>
+                        <table className="w-full border-collapse text-xs select-none">
+                          <thead>
+                            <tr className="bg-maroon text-white sticky-header">
+                              <th className="sticky-col bg-maroon px-4 py-3 text-left font-bold border-b border-r border-rose-900 min-w-[120px] shadow-sm">
+                                JAM \ TGL
+                              </th>
+                              {Array.from({ length: daysInMonth }).map((_, i) => {
+                                const d = i + 1;
+                                const dayName = new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(new Date(currentYear, currentMonth, d));
+                                const isWeekend = dayName === 'Sab' || dayName === 'Min';
+                                return (
+                                  <th key={d} className={`px-2 py-2.5 text-center font-bold border-b border-r border-rose-900 min-w-[65px] ${isWeekend ? 'bg-rose-950/40' : ''}`}>
+                                    <div className="text-[10px] text-rose-200 font-medium">{dayName}</div>
+                                    <div className="text-sm font-black">{d}</div>
+                                  </th>
+                                );
+                              })}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {TIME_SLOTS.map(slot => (
+                              <tr key={slot.label} className="border-b border-slate-200 hover:bg-slate-50/50">
+                                <td className="sticky-col bg-slate-50 px-3 py-2 font-mono font-bold text-slate-700 border-r border-slate-200 text-[11px] whitespace-nowrap shadow-sm">
+                                  {slot.label}
+                                </td>
+                                {Array.from({ length: daysInMonth }).map((_, i) => {
+                                  const day = i + 1;
+                                  const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                  const slotItems = schedules.filter(s => {
+                                    if (s.date !== dateStr) return false;
+                                    return (s.start_time < slot.end && s.end_time > slot.start) || (s.start_time === '00:00' && s.end_time === '23:59');
+                                  });
+
+                                  return (
+                                    <td
+                                      key={day}
+                                      onClick={() => handleOpenCreate(dateStr, slot.start, slot.end)}
+                                      className={`border-r border-slate-200 p-1 align-top h-14 relative transition ${isAdmin ? 'hover:bg-rose-50/50 cursor-pointer' : ''}`}
+                                    >
+                                      {slotItems.map(item => (
+                                        <div
+                                          key={item.id}
+                                          onClick={(e) => { e.stopPropagation(); handleOpenEdit(item); }}
+                                          className="p-1.5 rounded-xl font-bold text-[10px] text-slate-900 shadow-sm border border-black/10 transition cursor-pointer mb-1 leading-tight hover:scale-[1.02]"
+                                          style={{ backgroundColor: item.color }}
+                                          title={`${item.title} (${item.start_time}-${item.end_time})`}
+                                        >
+                                          <div className="truncate font-black">{item.title}</div>
+                                          <div className="text-[9px] font-mono text-slate-700">{item.start_time}-{item.end_time}</div>
+                                        </div>
+                                      ))}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+
+                            {/* REKAPITULASI BRAND DI BAWAH SPREADSHEET */}
+                            <tr className="bg-slate-200 font-black border-t-2 border-slate-300">
+                              <td colSpan={daysInMonth + 1} className="px-4 py-2.5 text-slate-700 uppercase tracking-wider text-xs">
+                                📌 Rekapitulasi Harian Brand
+                              </td>
+                            </tr>
+
+                            {brands.map(b => (
+                              <tr key={b.id} className="border-b border-slate-200 bg-slate-50">
+                                <td className="sticky-col bg-slate-100 px-3 py-2 font-bold text-slate-800 border-r border-slate-200 whitespace-nowrap shadow-sm">
+                                  {b.emoji} {b.name}
+                                </td>
+                                {Array.from({ length: daysInMonth }).map((_, i) => {
+                                  const day = i + 1;
+                                  const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                  const dayItems = schedules.filter(s => s.brand_id === b.id && s.date === dateStr);
+
+                                  let text = '-';
+                                  let bg = '';
+                                  if (dayItems.length > 0) {
+                                    if (dayItems.some(s => s.status === 'OFF')) {
+                                      text = 'OFF';
+                                      bg = 'bg-rose-100 text-rose-800 font-bold';
+                                    } else {
+                                      text = `${dayItems.length} Shift`;
+                                      bg = 'bg-emerald-100 text-emerald-800 font-bold';
+                                    }
+                                  }
+
+                                  return (
+                                    <td key={day} className={`border-r border-slate-200 p-1 text-center text-[10px] ${bg}`}>
+                                      {text}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* PC TAB 2: KPI & DASHBOARD */}
+                {pcSubTab === 'dashboard' && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                        <div className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                          <span>🟢</span><span>Total Shift LIVE</span>
+                        </div>
+                        <div className="text-4xl font-black text-emerald-600 mt-2">{stats.totalLive}</div>
+                        <div className="text-xs text-slate-500 mt-2 font-bold">≈ {stats.totalLive * 2} Jam Streaming</div>
+                      </div>
+                      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                        <div className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                          <span>☕</span><span>Hari Libur / OFF</span>
+                        </div>
+                        <div className="text-4xl font-black text-rose-600 mt-2">{stats.totalOff}</div>
+                        <div className="text-xs text-slate-500 mt-2">Hari Istirahat</div>
+                      </div>
+                      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                        <div className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                          <span>🏥</span><span>Izin Medis / RS</span>
+                        </div>
+                        <div className="text-4xl font-black text-maroon mt-2">{stats.totalSick}</div>
+                        <div className="text-xs text-slate-500 mt-2">Pemeriksaan / Sakit</div>
+                      </div>
+                      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                        <div className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                          <span>💬</span><span>Meeting & Script</span>
+                        </div>
+                        <div className="text-4xl font-black text-cyan-600 mt-2">{stats.totalMeeting}</div>
+                        <div className="text-xs text-slate-500 mt-2">Briefing Agenda</div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-4">🍩 Proporsi Waktu Alisya ({monthName})</h3>
+                        <div className="h-72 relative"><canvas ref={donutCanvas}></canvas></div>
+                      </div>
+                      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-4">📊 Beban Jam Live per Brand</h3>
+                        <div className="h-72 relative"><canvas ref={barCanvas}></canvas></div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+                      <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-4">📋 Rekapitulasi Rinci Jam Kerja</h3>
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-200">
+                          <tr>
+                            <th className="px-5 py-3.5">Brand</th>
+                            <th className="px-5 py-3.5 text-center">Total Shift</th>
+                            <th className="px-5 py-3.5 text-center">Shift LIVE</th>
+                            <th className="px-5 py-3.5 text-center">Hari OFF</th>
+                            <th className="px-5 py-3.5 text-center">Total Jam</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {stats.perBrand.map((b, idx) => (
+                            <tr key={idx} className="hover:bg-slate-50">
+                              <td className="px-5 py-3 font-bold text-slate-800 flex items-center gap-2 text-sm">
+                                <span>{b.emoji}</span><span>{b.name}</span>
+                              </td>
+                              <td className="px-5 py-3 text-center font-semibold">{b.totalShift}</td>
+                              <td className="px-5 py-3 text-center font-bold text-emerald-600">{b.liveCount}</td>
+                              <td className="px-5 py-3 text-center font-bold text-rose-600">{b.offCount}</td>
+                              <td className="px-5 py-3 text-center font-black text-maroon text-sm">{b.totalJam} Jam</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* PC TAB 3: DAFTAR SEMUA JADWAL */}
+                {pcSubTab === 'list' && (
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-black text-slate-800 text-lg">Semua Jadwal Terdaftar ({filteredSchedules.length})</h3>
+                      {isAdmin && (
+                        <button onClick={() => handleOpenCreate()} className="bg-maroon hover:bg-maroon-dark text-white px-5 py-2.5 rounded-2xl text-xs font-black shadow active:scale-95 transition">
+                          + Tambah Shift Baru
+                        </button>
+                      )}
+                    </div>
+
+                    {/* FILTER & PENCARIAN PC */}
+                    <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs font-semibold">
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="🔍 Cari nama shift, catatan, atau tanggal..."
+                          value={searchQuery}
+                          onChange={e => setSearchQuery(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-maroon focus:outline-none"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500 whitespace-nowrap">Brand:</span>
+                        <select
+                          value={filterBrand}
+                          onChange={e => setFilterBrand(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                        >
+                          <option value="ALL">Semua Brand</option>
+                          {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500 whitespace-nowrap">Status:</span>
+                        <select
+                          value={filterStatus}
+                          onChange={e => setFilterStatus(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                        >
+                          <option value="ALL">Semua Status</option>
+                          <option value="LIVE">🟢 LIVE</option>
+                          <option value="Meeting">💬 Meeting</option>
+                          <option value="OFF">☕ OFF</option>
+                          <option value="Sakit / Medis">🏥 Sakit / Medis</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-bold">
+                          <tr>
+                            <th className="px-4 py-3.5">Hari</th>
+                            <th className="px-4 py-3.5">Tanggal</th>
+                            <th className="px-4 py-3.5">Jam</th>
+                            <th className="px-4 py-3.5">Judul Shift</th>
+                            <th className="px-4 py-3.5">Brand</th>
+                            <th className="px-4 py-3.5">Status</th>
+                            <th className="px-4 py-3.5">Catatan</th>
+                            {isAdmin && <th className="px-4 py-3.5 text-right">Aksi</th>}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {filteredSchedules.map(s => {
+                            const brand = brands.find(b => b.id === s.brand_id);
+                            const namaHari = getHariNama(s.date);
+                            const isWeekend = namaHari === 'Sabtu' || namaHari === 'Minggu';
+
+                            return (
+                              <tr key={s.id} className="hover:bg-slate-50">
+                                <td className="px-4 py-3 font-bold">
+                                  <span className={`px-2.5 py-1 rounded-xl text-[11px] ${isWeekend ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'}`}>
+                                    {namaHari}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 font-semibold text-slate-900">{s.date}</td>
+                                <td className="px-4 py-3 font-mono font-bold text-slate-700">{s.start_time} - {s.end_time}</td>
+                                <td className="px-4 py-3 font-extrabold text-slate-900">
+                                  <span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: s.color }}></span>
+                                  {s.title}
+                                </td>
+                                <td className="px-4 py-3 font-medium">{brand?.emoji} {brand?.name || s.brand_id}</td>
+                                <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-md font-bold text-[10px]" style={{ backgroundColor: s.color + '44' }}>{s.status}</span></td>
+                                <td className="px-4 py-3 italic text-slate-500">{s.notes || '-'}</td>
+                                {isAdmin && (
+                                  <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap font-bold">
+                                    <button onClick={() => handleDuplicate(s)} className="text-slate-600 hover:text-slate-900 bg-slate-100 px-2 py-1 rounded-lg" title="Salin Jadwal">📋 Salin</button>
+                                    <button onClick={() => handleOpenEdit(s)} className="text-blue-600 hover:underline">Edit</button>
+                                    <button onClick={() => handleDelete(s.id)} className="text-rose-600 hover:underline">Hapus</button>
+                                  </td>
+                                )}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* PC TAB 4: PENGATURAN WARNA BRAND */}
+                {pcSubTab === 'colors' && (
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4 max-w-2xl mx-auto">
+                    <div>
+                      <h3 className="font-black text-slate-800 text-base">🎨 Pengaturan Warna Dinamis</h3>
+                      <p className="text-xs text-slate-500 mt-1">Ubah warna visual brand dengan Color Picker.</p>
+                    </div>
+
+                    <div className="space-y-3">
+                      {brands.map(b => (
+                        <div key={b.id} className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              disabled={!isAdmin}
+                              value={b.color}
+                              onChange={e => {
+                                const newColor = e.target.value;
+                                const updated = brands.map(item => item.id === b.id ? { ...item, color: newColor } : item);
+                                saveBrandsToCloud(updated);
+                                const updatedSch = schedules.map(s => s.brand_id === b.id ? { ...s, color: newColor } : s);
+                                saveSchedulesToCloud(updatedSch);
+                              }}
+                              className="w-10 h-10 rounded-2xl border-none cursor-pointer"
+                            />
+                            <div>
+                              <div className="font-extrabold text-sm text-slate-800 flex items-center gap-1.5">
+                                <span>{b.emoji}</span><span>{b.name}</span>
+                              </div>
+                              <div className="text-[11px] text-slate-400 font-mono font-bold">{b.color}</div>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] font-black px-2.5 py-1 rounded-xl ${isAdmin ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}`}>
+                            {isAdmin ? 'BISA DIUBAH' : 'TERKUNCI'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* 🌟 2. TAMPILAN KHUSUS MODE HP / MOBILE (THUMB-FRIENDLY)   */}
+          {/* ========================================================= */}
+          {displayMode === 'mobile' && (
+            <div className="flex-1 flex flex-col">
+              {/* SUB-NAVBAR SCROLLABLE MODE HP */}
+              <nav className="bg-white border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none flex items-center gap-2 sticky top-[58px] z-30 shadow-sm">
+                <button
+                  onClick={() => setActiveTab('agenda')}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${activeTab === 'agenda' ? 'bg-maroon text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                  <span>📱</span><span>Agenda</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('calendar')}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${activeTab === 'calendar' ? 'bg-maroon text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                  <span>📅</span><span>Spreadsheet</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('kpi')}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${activeTab === 'kpi' ? 'bg-maroon text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                  <span>📊</span><span>Statistik</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('list')}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${activeTab === 'list' ? 'bg-maroon text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                  <span>📋</span><span>Daftar</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('colors')}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${activeTab === 'colors' ? 'bg-maroon text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                  <span>🎨</span><span>Warna</span>
+                </button>
+                <button
+                  onClick={exportCSV}
+                  className="flex-shrink-0 ml-auto bg-slate-100 text-slate-800 border border-slate-300 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1"
+                >
+                  <span>📥</span><span>CSV</span>
+                </button>
+              </nav>
+
+              <div className="p-4 space-y-4 max-w-lg w-full mx-auto">
+                {/* HP TAB 1: AGENDA HARIAN FEED */}
+                {activeTab === 'agenda' && (
+                  <div className="space-y-4">
+                    {/* RADAR LIVE STREAM */}
+                    <div className="bg-gradient-to-r from-maroon to-rose-900 text-white rounded-3xl p-4 shadow-lg space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest text-rose-200">Radar Jadwal Live</span>
+                        </div>
+                        <button
+                          onClick={shareToWhatsApp}
+                          className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded-xl text-[11px] font-black shadow flex items-center gap-1 active:scale-95 transition"
+                        >
+                          <span>📲</span><span>Share WA</span>
+                        </button>
+                      </div>
+                      <div>
+                        <h2 className="text-base font-black">{getHariNama(selectedDate)}, {selectedDate}</h2>
+                        <p className="text-xs text-rose-100">{selectedDaySchedules.length} Sesi Terjadwal • {selectedDaySchedules.filter(s=>s.status==='LIVE').length * 2} Jam Siaran</p>
+                      </div>
+                    </div>
+
+                    {/* HORIZONTAL DATE PICKER BAR */}
+                    <div className="bg-white p-3 rounded-3xl border border-slate-200 shadow-sm">
+                      <div className="flex items-center justify-between mb-2 px-1">
+                        <span className="text-xs font-black text-slate-700 uppercase">🗓️ Tanggal ({monthName})</span>
+                        <span className="text-[10px] text-slate-400 font-bold">Geser ❯</span>
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                        {Array.from({ length: daysInMonth }).map((_, i) => {
+                          const day = i + 1;
+                          const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                          const isSelected = selectedDate === dateStr;
+                          const dayName = new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(new Date(currentYear, currentMonth, day));
+                          const dayShifts = schedules.filter(s => s.date === dateStr);
+                          const isWeekend = dayName === 'Sab' || dayName === 'Min';
 
                           return (
-                            <tr key={s.id} className="hover:bg-slate-50">
-                              <td className="px-4 py-3 font-bold">
-                                <span className={`px-2.5 py-1 rounded-xl text-[11px] ${isWeekend ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'}`}>
-                                  {namaHari}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 font-semibold text-slate-900">{s.date}</td>
-                              <td className="px-4 py-3 font-mono font-bold text-slate-700">{s.start_time} - {s.end_time}</td>
-                              <td className="px-4 py-3 font-extrabold text-slate-900">
-                                <span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: s.color }}></span>
-                                {s.title}
-                              </td>
-                              <td className="px-4 py-3 font-medium">{brand?.emoji} {brand?.name || s.brand_id}</td>
-                              <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-md font-bold text-[10px]" style={{ backgroundColor: s.color + '44' }}>{s.status}</span></td>
-                              <td className="px-4 py-3 italic text-slate-500">{s.notes || '-'}</td>
+                            <button
+                              key={day}
+                              onClick={() => setSelectedDate(dateStr)}
+                              className={`flex-shrink-0 w-12 py-2 rounded-2xl flex flex-col items-center justify-center transition active:scale-95 ${isSelected ? 'bg-maroon text-white shadow-md scale-105' : 'bg-slate-50 text-slate-700 border border-slate-200'}`}
+                            >
+                              <span className={`text-[9px] font-bold ${isSelected ? 'text-rose-200' : isWeekend ? 'text-rose-600' : 'text-slate-400'}`}>{dayName}</span>
+                              <span className="text-sm font-black">{day}</span>
+                              <div className="flex gap-0.5 mt-1 h-1">
+                                {dayShifts.slice(0, 3).map((s, idx) => (
+                                  <span key={idx} className="w-1 h-1 rounded-full" style={{ backgroundColor: isSelected ? '#FFFFFF' : s.color }}></span>
+                                ))}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* KARTU JADWAL HARIAN */}
+                    <div className="space-y-3">
+                      {selectedDaySchedules.length === 0 ? (
+                        <div className="bg-white rounded-3xl p-7 text-center border border-slate-200 shadow-sm space-y-2">
+                          <div className="text-4xl">☕</div>
+                          <div className="font-extrabold text-sm text-slate-800">Hari Ini Tidak Ada Jadwal Live</div>
+                          <p className="text-xs text-slate-400">Alisya libur atau belum ada jadwal yang dimasukkan.</p>
+                          {isAdmin && (
+                            <button onClick={() => handleOpenCreate(selectedDate)} className="mt-2 bg-maroon text-white text-xs font-bold px-4 py-2 rounded-xl">
+                              + Tambah Jadwal Hari Ini
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        selectedDaySchedules.map(item => {
+                          const brand = brands.find(b => b.id === item.brand_id);
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => handleOpenEdit(item)}
+                              className="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm flex items-start justify-between gap-3 active:scale-[0.98] transition cursor-pointer relative overflow-hidden"
+                            >
+                              <div className="w-2 absolute left-0 top-0 bottom-0" style={{ backgroundColor: item.color }}></div>
+                              <div className="space-y-1.5 pl-2 flex-1">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="font-mono text-[11px] font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-lg">
+                                    ⏰ {item.start_time} - {item.end_time}
+                                  </span>
+                                  <span className="text-[9px] font-black px-2 py-0.5 rounded-lg uppercase" style={{ backgroundColor: item.color + '44', color: '#0F172A' }}>
+                                    {item.status}
+                                  </span>
+                                  <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+                                    <span>{brand?.emoji}</span><span>{brand?.name}</span>
+                                  </span>
+                                </div>
+                                <div className="font-black text-sm text-slate-900 leading-snug">{item.title}</div>
+                                {item.notes && (
+                                  <div className="bg-amber-50 border border-amber-200 p-2 rounded-xl text-[10px] text-amber-900 italic">
+                                    📝 {item.notes}
+                                  </div>
+                                )}
+                              </div>
                               {isAdmin && (
-                                <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap font-bold">
-                                  <button onClick={() => handleDuplicate(s)} className="text-slate-600 hover:text-slate-900 bg-slate-100 px-2 py-1 rounded-lg" title="Salin Jadwal">📋 Salin</button>
-                                  <button onClick={() => handleOpenEdit(s)} className="text-blue-600 hover:underline">Edit</button>
-                                  <button onClick={() => handleDelete(s.id)} className="text-rose-600 hover:underline">Hapus</button>
-                                </td>
+                                <div className="flex flex-col items-end gap-1">
+                                  <span className="text-[11px] text-blue-600 font-extrabold">Edit ❯</span>
+                                  <button onClick={(e) => { e.stopPropagation(); handleDuplicate(item); }} className="text-[9px] text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-lg">
+                                    📋
+                                  </button>
+                                </div>
                               )}
-                            </tr>
+                            </div>
                           );
                         })
                       )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* VIEW 5: 🎨 PENGATURAN WARNA DINAMIS */}
-            {activeTab === 'colors' && (
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4 max-w-2xl mx-auto">
-                <div>
-                  <h3 className="font-black text-slate-800 text-base">🎨 Pengaturan Warna Dinamis</h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Ganti warna visual tiap brand dengan palet warna (*Color Picker*). Perubahan otomatis tersimpan ke cloud dan memperbarui warna di kalender serta diagram.
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  {brands.map(b => (
-                    <div key={b.id} className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="color"
-                          disabled={!isAdmin}
-                          value={b.color}
-                          onChange={e => {
-                            const newColor = e.target.value;
-                            const updated = brands.map(item => item.id === b.id ? { ...item, color: newColor } : item);
-                            saveBrandsToCloud(updated);
-                            const updatedSch = schedules.map(s => s.brand_id === b.id ? { ...s, color: newColor } : s);
-                            saveSchedulesToCloud(updatedSch);
-                          }}
-                          className="w-10 h-10 rounded-2xl border-none cursor-pointer"
-                        />
-                        <div>
-                          <div className="font-extrabold text-sm text-slate-800 flex items-center gap-1.5">
-                            <span>{b.emoji}</span><span>{b.name}</span>
-                          </div>
-                          <div className="text-[11px] text-slate-400 font-mono font-bold">{b.color}</div>
-                        </div>
-                      </div>
-                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-xl ${isAdmin ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}`}>
-                        {isAdmin ? 'BISA DIUBAH' : 'TERKUNCI'}
-                      </span>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
 
-                {!isAdmin && (
-                  <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-2xl border border-amber-200 font-medium">
-                    🔒 Masuk ke Mode Admin terlebih dahulu untuk mengubah warna brand.
-                  </p>
+                {/* HP TAB 2: SPREADSHEET 24 JAM KHUSUS HP */}
+                {activeTab === 'calendar' && (
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div className="overflow-x-auto relative" style={{ maxHeight: '72vh' }}>
+                      <table className="w-full border-collapse text-xs select-none">
+                        <thead>
+                          <tr className="bg-maroon text-white sticky-header">
+                            <th className="sticky-col bg-maroon px-3 py-2 text-left font-bold border-b border-r border-rose-900 min-w-[100px]">JAM</th>
+                            {Array.from({ length: daysInMonth }).map((_, i) => (
+                              <th key={i+1} className="px-2 py-2 text-center font-bold border-b border-r border-rose-900 min-w-[50px]">
+                                <div className="text-[9px] text-rose-200">{new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(new Date(currentYear, currentMonth, i+1))}</div>
+                                <div className="text-xs font-black">{i+1}</div>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {TIME_SLOTS.map(slot => (
+                            <tr key={slot.label} className="border-b border-slate-200">
+                              <td className="sticky-col bg-slate-50 px-2 py-2 font-mono font-bold text-slate-700 border-r border-slate-200 text-[9px] whitespace-nowrap">
+                                {slot.label}
+                              </td>
+                              {Array.from({ length: daysInMonth }).map((_, i) => {
+                                const day = i + 1;
+                                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                const slotItems = schedules.filter(s => s.date === dateStr && ((s.start_time < slot.end && s.end_time > slot.start) || (s.start_time === '00:00' && s.end_time === '23:59')));
+                                return (
+                                  <td key={day} onClick={() => handleOpenCreate(dateStr, slot.start, slot.end)} className="border-r border-slate-200 p-1 align-top h-11 relative">
+                                    {slotItems.map(item => (
+                                      <div key={item.id} onClick={(e) => { e.stopPropagation(); handleOpenEdit(item); }} className="p-1 rounded font-bold text-[8px] text-slate-900 truncate mb-0.5 shadow-sm" style={{ backgroundColor: item.color }}>
+                                        {item.title}
+                                      </div>
+                                    ))}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* HP TAB 3: STATISTIK & KPI */}
+                {activeTab === 'kpi' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">🟢 Shift LIVE</div>
+                        <div className="text-3xl font-black text-emerald-600 mt-1">{stats.totalLive}</div>
+                        <div className="text-[10px] text-slate-400 mt-1 font-bold">≈ {stats.totalLive * 2} Jam</div>
+                      </div>
+                      <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">☕ Hari OFF</div>
+                        <div className="text-3xl font-black text-rose-600 mt-1">{stats.totalOff}</div>
+                        <div className="text-[10px] text-slate-400 mt-1">Istirahat</div>
+                      </div>
+                      <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">🏥 Medis / RS</div>
+                        <div className="text-3xl font-black text-maroon mt-1">{stats.totalSick}</div>
+                        <div className="text-[10px] text-slate-400 mt-1">Izin</div>
+                      </div>
+                      <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">💬 Meeting</div>
+                        <div className="text-3xl font-black text-cyan-600 mt-1">{stats.totalMeeting}</div>
+                        <div className="text-[10px] text-slate-400 mt-1">Briefing</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+                      <h3 className="text-xs font-black text-slate-700 uppercase mb-2">🍩 Distribusi Waktu ({monthName})</h3>
+                      <div className="h-52 relative"><canvas ref={donutCanvas}></canvas></div>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+                      <h3 className="text-xs font-black text-slate-700 uppercase mb-2">📊 Beban Jam per Brand</h3>
+                      <div className="h-52 relative"><canvas ref={barCanvas}></canvas></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* HP TAB 4: DAFTAR SEMUA JADWAL */}
+                {activeTab === 'list' && (
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-black text-slate-800 text-sm">Semua Jadwal ({filteredSchedules.length})</h3>
+                      {isAdmin && (
+                        <button onClick={() => handleOpenCreate()} className="bg-maroon text-white px-3 py-1.5 rounded-xl text-xs font-bold">
+                          + Tambah
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="🔍 Cari nama shift, tanggal..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                    />
+                    <div className="space-y-2">
+                      {filteredSchedules.map(s => (
+                        <div key={s.id} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-xs text-maroon">{getHariNama(s.date)}, {s.date}</span>
+                            <span className="font-mono text-[10px] font-bold bg-white px-2 py-0.5 rounded border">{s.start_time}-{s.end_time}</span>
+                          </div>
+                          <div className="font-black text-xs text-slate-900">{s.title}</div>
+                          {isAdmin && (
+                            <div className="flex justify-end gap-2 pt-1 border-t border-slate-200/60">
+                              <button onClick={() => handleDuplicate(s)} className="text-[10px] font-bold text-slate-600">📋 Salin</button>
+                              <button onClick={() => handleOpenEdit(s)} className="text-[10px] font-bold text-blue-600">Edit</button>
+                              <button onClick={() => handleDelete(s.id)} className="text-[10px] font-bold text-rose-600">Hapus</button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* HP TAB 5: WARNA */}
+                {activeTab === 'colors' && (
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 space-y-3">
+                    <h3 className="font-black text-sm text-slate-800">🎨 Warna Brand</h3>
+                    <div className="space-y-2">
+                      {brands.map(b => (
+                        <div key={b.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              disabled={!isAdmin}
+                              value={b.color}
+                              onChange={e => {
+                                const newColor = e.target.value;
+                                const updated = brands.map(item => item.id === b.id ? { ...item, color: newColor } : item);
+                                saveBrandsToCloud(updated);
+                                const updatedSch = schedules.map(s => s.brand_id === b.id ? { ...s, color: newColor } : s);
+                                saveSchedulesToCloud(updatedSch);
+                              }}
+                              className="w-8 h-8 rounded-xl border-none cursor-pointer"
+                            />
+                            <span className="font-bold text-xs">{b.emoji} {b.name}</span>
+                          </div>
+                          <span className="text-[10px] font-bold font-mono text-slate-500">{b.color}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
-            )}
-          </main>
 
-          {/* FLOATING ACTION BUTTON (FAB) KHUSUS ADMIN DI HP */}
-          {isAdmin && (
-            <button
-              onClick={() => handleOpenCreate(selectedDate)}
-              className="md:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full bg-maroon text-white flex items-center justify-center text-2xl shadow-2xl z-40 active:scale-90 transition border-2 border-white/50"
-              title="Tambah Jadwal Cepat"
-            >
-              +
-            </button>
+              {/* FLOATING ACTION BUTTON (FAB) HP */}
+              {isAdmin && (
+                <button
+                  onClick={() => handleOpenCreate(selectedDate)}
+                  className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-maroon text-white flex items-center justify-center text-3xl shadow-2xl z-40 active:scale-90 transition border-2 border-white/50"
+                  title="Tambah Cepat"
+                >
+                  +
+                </button>
+              )}
+            </div>
           )}
+
+          {/* ========================================================= */}
+          {/* 🌟 3. MODAL POPUP (PIN & INPUT/EDIT JADWAL)               */}
+          {/* ========================================================= */}
 
           {/* MODAL INPUT PIN ADMIN (PIN 101100) */}
           {pinInputModal && (
@@ -1044,7 +1250,7 @@
                 </div>
                 <div>
                   <h3 className="font-black text-base text-slate-800">Akses Admin</h3>
-                  <p className="text-xs text-slate-500 mt-1">Masukkan PIN untuk membuka fitur input dan edit jadwal Alisya.</p>
+                  <p className="text-xs text-slate-500 mt-1">Masukkan PIN untuk mengelola jadwal Alisya.</p>
                 </div>
                 <form onSubmit={handleVerifyPin} className="space-y-3">
                   <input
