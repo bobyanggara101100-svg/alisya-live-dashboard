@@ -78,7 +78,6 @@
       console.error("Firebase init error:", err);
     }
 
-    // Kategori Lengkap: Brand, Jam Tidur, Lain-Lain & Agenda Pribadi (Bisa diatur warnanya)
     const DEFAULT_BRANDS_INIT = [
       { id: 'b_momuung', name: 'Mom Uung', emoji: '🍼', color: '#B6D7A8' },
       { id: 'b_aquapress', name: 'AquaPress', emoji: '💧', color: '#00FFFF' },
@@ -127,7 +126,6 @@
     };
 
     function App() {
-      // 🌟 DETEKSI HARI INI SECARA REAL-TIME DARI PERANGKAT
       const realTodayStr = useMemo(() => {
         const now = new Date();
         const y = now.getFullYear();
@@ -136,7 +134,6 @@
         return `${y}-${m}-${d}`;
       }, []);
 
-      // 🌟 DUAL MODE SWITCHER: 'mobile' vs 'pc'
       const [displayMode, setDisplayMode] = useState(() => {
         const saved = localStorage.getItem('alisya_display_mode');
         if (saved) return saved;
@@ -151,11 +148,9 @@
       const [activeTab, setActiveTab] = useState('agenda');
       const [pcSubTab, setPcSubTab] = useState('calendar');
 
-      // Shared State (Tersinkronisasi ke Firebase)
       const [schedules, setSchedules] = useState(INITIAL_SCHEDULES);
       const [brands, setBrands] = useState(DEFAULT_BRANDS_INIT);
 
-      // Admin State (PIN 101100)
       const [isAdmin, setIsAdmin] = useState(false);
       const adminPin = "101100";
       const [pinInputModal, setPinInputModal] = useState(false);
@@ -163,11 +158,15 @@
       const [pinError, setPinError] = useState(false);
 
       const [selectedDate, setSelectedDate] = useState(realTodayStr);
+
+      // 🔍 FILTER & PENCARIAN CERDAS (Kategori, Status, Tanggal, Jam)
       const [searchQuery, setSearchQuery] = useState('');
       const [filterBrand, setFilterBrand] = useState('ALL');
       const [filterStatus, setFilterStatus] = useState('ALL');
+      const [filterDate, setFilterDate] = useState('');
+      const [filterHour, setFilterHour] = useState('ALL');
 
-      // Firebase Sync Listener (Otomatis menyelaraskan Mode HP dan PC)
+      // Firebase Sync
       useEffect(() => {
         if (!firebaseDb) return;
         const refSch = firebaseDb.ref('alisya_schedules');
@@ -311,7 +310,6 @@
         }
       };
 
-      // 📥 Ekspor CSV
       const exportCSV = () => {
         const headers = ["Hari", "Tanggal", "Jam Mulai", "Jam Selesai", "Judul Shift", "Kategori/Brand", "Status", "Catatan"];
         const rows = schedules.map(s => [
@@ -335,7 +333,6 @@
         notify('📥 File CSV berhasil diunduh!');
       };
 
-      // 📲 WhatsApp Share
       const shareToWhatsApp = () => {
         const todayItems = schedules.filter(s => s.date === selectedDate).sort((a,b) => a.start_time.localeCompare(b.start_time));
         const hari = getHariNama(selectedDate);
@@ -407,7 +404,6 @@
           .sort((a, b) => a.start_time.localeCompare(b.start_time));
       }, [schedules, selectedDate]);
 
-      // 🟢 AVAILABLE SCHEDULE FINDER
       const availableSlotsForSelectedDate = useMemo(() => {
         return TIME_SLOTS.filter(slot => {
           const isBusy = selectedDaySchedules.some(s => {
@@ -418,7 +414,6 @@
         });
       }, [selectedDaySchedules]);
 
-      // 🔥 KETERANGAN FULL SCHEDULE / STATUS KEPADATAN PER HARI
       const getDayScheduleDensity = (dateStr) => {
         const dayShifts = schedules.filter(s => s.date === dateStr);
         const liveShifts = dayShifts.filter(s => s.status === 'LIVE');
@@ -430,10 +425,17 @@
         return { text: '✨ FREE SLOT', badge: 'bg-slate-100 text-slate-600 border-slate-200' };
       };
 
+      // 🔍 FILTERED LIST MULTI-KRITERIA (Judul, Kategori, Status, Tanggal, Jam)
       const filteredSchedules = useMemo(() => {
         return schedules.filter(s => {
           if (filterBrand !== 'ALL' && s.brand_id !== filterBrand) return false;
           if (filterStatus !== 'ALL' && s.status !== filterStatus) return false;
+          if (filterDate && s.date !== filterDate) return false;
+          if (filterHour !== 'ALL') {
+            const startHour = parseInt(s.start_time.split(':')[0], 10);
+            const targetHour = parseInt(filterHour, 10);
+            if (startHour !== targetHour) return false;
+          }
           if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase();
             const bName = brands.find(b => b.id === s.brand_id)?.name.toLowerCase() || '';
@@ -445,9 +447,17 @@
           }
           return true;
         });
-      }, [schedules, filterBrand, filterStatus, searchQuery, brands]);
+      }, [schedules, filterBrand, filterStatus, filterDate, filterHour, searchQuery, brands]);
 
-      // Statistik KPI
+      // Reset Semua Filter
+      const handleResetFilter = () => {
+        setSearchQuery('');
+        setFilterBrand('ALL');
+        setFilterStatus('ALL');
+        setFilterDate('');
+        setFilterHour('ALL');
+      };
+
       const stats = useMemo(() => {
         let totalLive = 0, totalOff = 0, totalSick = 0, totalMeeting = 0, totalSleep = 0, totalLain = 0;
         currentMonthSchedules.forEach(s => {
@@ -520,7 +530,6 @@
 
       return (
         <div className="min-h-screen flex flex-col bg-slate-100">
-          {/* TOAST NOTIFIKASI */}
           {toast && (
             <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 backdrop-blur text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2 text-xs font-bold animate-bounce border border-slate-700">
               <span>{toast}</span>
@@ -637,7 +646,7 @@
               </div>
 
               <div className="p-6 max-w-[1600px] w-full mx-auto space-y-6">
-                {/* 🔄 SPREADSHEET PC: ATAS = JAM, KIRI = TANGGAL & HARI DENGAN BADGE HARI INI */}
+                {/* SPREADSHEET PC */}
                 {pcSubTab === 'calendar' && (
                   <div className="space-y-4">
                     <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4 text-xs">
@@ -649,9 +658,6 @@
                           <span className="text-sm">📲</span>
                           <span>Share Rekap Spreadsheet ke WA</span>
                         </button>
-                        <span className="text-slate-500 font-medium">
-                          💡 <strong>Tata Letak:</strong> Baris atas = Slot Waktu. Baris ke bawah = Urutan Tanggal & Hari.
-                        </span>
                       </div>
 
                       <div className="flex items-center gap-3 font-bold flex-wrap">
@@ -688,13 +694,11 @@
                               const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                               const dayName = new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(new Date(currentYear, currentMonth, day));
                               const isWeekend = dayName === 'Sabtu' || dayName === 'Minggu';
-                              // Deteksi otomatis apakah baris ini adalah HARI INI
                               const isToday = dateStr === realTodayStr;
                               const density = getDayScheduleDensity(dateStr);
 
                               return (
                                 <tr key={day} className={`border-b border-slate-200 hover:bg-slate-50/70 transition ${isToday ? 'bg-emerald-50/70' : ''}`}>
-                                  {/* KOLOM KIRI STICKY DENGAN INDIKATOR [HARI INI] */}
                                   <td className={`sticky-col px-4 py-2.5 border-r border-slate-200 whitespace-nowrap shadow-sm ${isToday ? 'bg-[#d1fae5] text-slate-900 font-black' : isWeekend ? 'bg-rose-50/80 text-rose-900 font-bold' : 'bg-slate-50 font-bold'}`}>
                                     <div className="flex items-center gap-2.5">
                                       <span className="text-base font-black text-slate-900">{day}</span>
@@ -707,14 +711,12 @@
                                     </div>
                                   </td>
 
-                                  {/* STATUS KEPADATAN JADWAL (FULL SCHEDULE INDICATOR) */}
                                   <td className="border-r border-slate-200 p-1.5 text-center whitespace-nowrap">
                                     <span className={`px-2 py-1 rounded-xl text-[10px] border shadow-xs ${density.badge}`}>
                                       {density.text}
                                     </span>
                                   </td>
 
-                                  {/* SEL-SEL JAM */}
                                   {TIME_SLOTS.map(slot => {
                                     const slotItems = schedules.filter(s => {
                                       if (s.date !== dateStr) return false;
@@ -799,7 +801,7 @@
                   </div>
                 )}
 
-                {/* DAFTAR SEMUA JADWAL PC */}
+                {/* DAFTAR SEMUA JADWAL PC (LENGKAP DENGAN PENCARIAN & FILTER MULTI-KRITERIA) */}
                 {pcSubTab === 'list' && (
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
                     <div className="flex justify-between items-center">
@@ -811,33 +813,35 @@
                       )}
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs font-semibold">
-                      <div>
+                    {/* 🔍 PANEL PENCARIAN & FILTER LENGKAP (MODE PC) */}
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs font-semibold">
+                      <div className="md:col-span-1">
+                        <label className="block text-slate-500 mb-1">Cari Kata Kunci:</label>
                         <input
                           type="text"
-                          placeholder="🔍 Cari nama shift, catatan, atau tanggal..."
+                          placeholder="🔍 Shift, catatan..."
                           value={searchQuery}
                           onChange={e => setSearchQuery(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-maroon focus:outline-none"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-maroon focus:outline-none"
                         />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-500 whitespace-nowrap">Kategori:</span>
+                      <div>
+                        <label className="block text-slate-500 mb-1">Kategori / Brand:</label>
                         <select
                           value={filterBrand}
                           onChange={e => setFilterBrand(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs"
                         >
                           <option value="ALL">Semua Kategori</option>
-                          {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                          {brands.map(b => <option key={b.id} value={b.id}>{b.emoji} {b.name}</option>)}
                         </select>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-500 whitespace-nowrap">Status:</span>
+                      <div>
+                        <label className="block text-slate-500 mb-1">Status Kehadiran:</label>
                         <select
                           value={filterStatus}
                           onChange={e => setFilterStatus(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs"
                         >
                           <option value="ALL">Semua Status</option>
                           <option value="LIVE">🟢 LIVE</option>
@@ -846,6 +850,33 @@
                           <option value="Meeting">💬 Meeting</option>
                           <option value="OFF">☕ OFF</option>
                           <option value="Sakit / Medis">🏥 Sakit / Medis</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-slate-500 mb-1">Pilih Cek Tanggal:</label>
+                        <input
+                          type="date"
+                          value={filterDate}
+                          onChange={e => setFilterDate(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="text-slate-500">Cek Jam Mulai:</label>
+                          {(searchQuery || filterBrand !== 'ALL' || filterStatus !== 'ALL' || filterDate || filterHour !== 'ALL') && (
+                            <button onClick={handleResetFilter} className="text-[10px] text-rose-600 font-bold hover:underline">Reset</button>
+                          )}
+                        </div>
+                        <select
+                          value={filterHour}
+                          onChange={e => setFilterHour(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs"
+                        >
+                          <option value="ALL">Semua Jam</option>
+                          {Array.from({ length: 24 }).map((_, h) => (
+                            <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -865,37 +896,41 @@
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
-                          {filteredSchedules.map(s => {
-                            const brand = brands.find(b => b.id === s.brand_id);
-                            const namaHari = getHariNama(s.date);
-                            const isWeekend = namaHari === 'Sabtu' || namaHari === 'Minggu';
+                          {filteredSchedules.length === 0 ? (
+                            <tr><td colSpan="8" className="text-center py-8 text-slate-400 font-bold">Tidak ada jadwal yang cocok dengan filter pencarian ini.</td></tr>
+                          ) : (
+                            filteredSchedules.map(s => {
+                              const brand = brands.find(b => b.id === s.brand_id);
+                              const namaHari = getHariNama(s.date);
+                              const isWeekend = namaHari === 'Sabtu' || namaHari === 'Minggu';
 
-                            return (
-                              <tr key={s.id} className="hover:bg-slate-50">
-                                <td className="px-4 py-3 font-bold">
-                                  <span className={`px-2.5 py-1 rounded-xl text-[11px] ${isWeekend ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'}`}>
-                                    {namaHari}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 font-semibold text-slate-900">{s.date}</td>
-                                <td className="px-4 py-3 font-mono font-bold text-slate-700">{s.start_time} - {s.end_time}</td>
-                                <td className="px-4 py-3 font-extrabold text-slate-900">
-                                  <span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: s.color }}></span>
-                                  {s.title}
-                                </td>
-                                <td className="px-4 py-3 font-medium">{brand?.emoji} {brand?.name || s.brand_id}</td>
-                                <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-md font-bold text-[10px]" style={{ backgroundColor: s.color + '44' }}>{s.status}</span></td>
-                                <td className="px-4 py-3 italic text-slate-500">{s.notes || '-'}</td>
-                                {isAdmin && (
-                                  <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap font-bold">
-                                    <button onClick={() => handleDuplicate(s)} className="text-slate-600 hover:text-slate-900 bg-slate-100 px-2 py-1 rounded-lg" title="Salin Jadwal">📋 Salin</button>
-                                    <button onClick={() => handleOpenEdit(s)} className="text-blue-600 hover:underline">Edit</button>
-                                    <button onClick={() => handleDelete(s.id)} className="text-rose-600 hover:underline">Hapus</button>
+                              return (
+                                <tr key={s.id} className="hover:bg-slate-50">
+                                  <td className="px-4 py-3 font-bold">
+                                    <span className={`px-2.5 py-1 rounded-xl text-[11px] ${isWeekend ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'}`}>
+                                      {namaHari}
+                                    </span>
                                   </td>
-                                )}
-                              </tr>
-                            );
-                          })}
+                                  <td className="px-4 py-3 font-semibold text-slate-900">{s.date}</td>
+                                  <td className="px-4 py-3 font-mono font-bold text-slate-700">{s.start_time} - {s.end_time}</td>
+                                  <td className="px-4 py-3 font-extrabold text-slate-900">
+                                    <span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: s.color }}></span>
+                                    {s.title}
+                                  </td>
+                                  <td className="px-4 py-3 font-medium">{brand?.emoji} {brand?.name || s.brand_id}</td>
+                                  <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-md font-bold text-[10px]" style={{ backgroundColor: s.color + '44' }}>{s.status}</span></td>
+                                  <td className="px-4 py-3 italic text-slate-500">{s.notes || '-'}</td>
+                                  {isAdmin && (
+                                    <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap font-bold">
+                                      <button onClick={() => handleDuplicate(s)} className="text-slate-600 hover:text-slate-900 bg-slate-100 px-2 py-1 rounded-lg" title="Salin Jadwal">📋 Salin</button>
+                                      <button onClick={() => handleOpenEdit(s)} className="text-blue-600 hover:underline">Edit</button>
+                                      <button onClick={() => handleDelete(s.id)} className="text-rose-600 hover:underline">Hapus</button>
+                                    </td>
+                                  )}
+                                </tr>
+                              );
+                            })
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -1025,7 +1060,7 @@
                       </div>
                     </div>
 
-                    {/* 🟢 AVAILABLE SCHEDULE FINDER CARD */}
+                    {/* AVAILABLE SCHEDULE CARD */}
                     <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-3.5 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black text-emerald-900 flex items-center gap-1.5">
@@ -1146,7 +1181,7 @@
                   </div>
                 )}
 
-                {/* SPREADSHEET MODE HP: DILENGKAPI [HARI INI] PERSIS SESUAI GAMBAR */}
+                {/* SPREADSHEET MODE HP */}
                 {activeTab === 'calendar' && (
                   <div className="space-y-3">
                     <button
@@ -1180,7 +1215,6 @@
 
                               return (
                                 <tr key={day} className={`border-b border-slate-200 ${isToday ? 'bg-emerald-50/70' : ''}`}>
-                                  {/* KOLOM KIRI PERSIS SEPERTI GAMBAR USER */}
                                   <td className={`sticky-col px-3 py-2 border-r border-slate-200 whitespace-nowrap shadow-sm ${isToday ? 'bg-[#d1fae5] text-slate-900 font-black' : 'bg-slate-50 font-bold'}`}>
                                     <div className="flex items-center gap-2">
                                       <span className="text-sm font-black text-slate-900">{day}</span>
@@ -1252,41 +1286,114 @@
                   </div>
                 )}
 
-                {/* DAFTAR HP */}
+                {/* 📋 DAFTAR JADWAL HP (DILENGKAPI FILTER KATEGORI, STATUS, TANGGAL & JAM) */}
                 {activeTab === 'list' && (
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 space-y-3">
                     <div className="flex justify-between items-center">
                       <h3 className="font-black text-slate-800 text-sm">Semua Jadwal ({filteredSchedules.length})</h3>
-                      {isAdmin && (
-                        <button onClick={() => handleOpenCreate()} className="bg-maroon text-white px-3 py-1.5 rounded-xl text-xs font-bold">
-                          + Tambah
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {(searchQuery || filterBrand !== 'ALL' || filterStatus !== 'ALL' || filterDate || filterHour !== 'ALL') && (
+                          <button onClick={handleResetFilter} className="text-[11px] text-rose-600 font-bold hover:underline">Reset</button>
+                        )}
+                        {isAdmin && (
+                          <button onClick={() => handleOpenCreate()} className="bg-maroon text-white px-3 py-1.5 rounded-xl text-xs font-bold">
+                            + Tambah
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <input
-                      type="text"
-                      placeholder="🔍 Cari nama shift, tanggal..."
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
-                    />
-                    <div className="space-y-2">
-                      {filteredSchedules.map(s => (
-                        <div key={s.id} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-xs text-maroon">{getHariNama(s.date)}, {s.date}</span>
-                            <span className="font-mono text-[10px] font-bold bg-white px-2 py-0.5 rounded border">{s.start_time}-{s.end_time}</span>
-                          </div>
-                          <div className="font-black text-xs text-slate-900">{s.title}</div>
-                          {isAdmin && (
-                            <div className="flex justify-end gap-2 pt-1 border-t border-slate-200/60">
-                              <button onClick={() => handleDuplicate(s)} className="text-[10px] font-bold text-slate-600">📋 Salin</button>
-                              <button onClick={() => handleOpenEdit(s)} className="text-[10px] font-bold text-blue-600">Edit</button>
-                              <button onClick={() => handleDelete(s.id)} className="text-[10px] font-bold text-rose-600">Hapus</button>
-                            </div>
-                          )}
+
+                    {/* 🔍 PANEL FILTER HP */}
+                    <div className="space-y-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                      <input
+                        type="text"
+                        placeholder="🔍 Cari nama shift, catatan..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-maroon"
+                      />
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <select
+                          value={filterBrand}
+                          onChange={e => setFilterBrand(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-2 py-1.5 font-medium"
+                        >
+                          <option value="ALL">Semua Kategori</option>
+                          {brands.map(b => <option key={b.id} value={b.id}>{b.emoji} {b.name}</option>)}
+                        </select>
+                        <select
+                          value={filterStatus}
+                          onChange={e => setFilterStatus(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-2 py-1.5 font-medium"
+                        >
+                          <option value="ALL">Semua Status</option>
+                          <option value="LIVE">🟢 LIVE</option>
+                          <option value="Tidur">😴 Tidur</option>
+                          <option value="Lain-Lain">💅 Lain-Lain</option>
+                          <option value="Meeting">💬 Meeting</option>
+                          <option value="OFF">☕ OFF</option>
+                          <option value="Sakit / Medis">🏥 Sakit</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <label className="block text-[10px] text-slate-500 font-bold mb-0.5">Cek Tanggal:</label>
+                          <input
+                            type="date"
+                            value={filterDate}
+                            onChange={e => setFilterDate(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-2 py-1 text-[11px] font-semibold"
+                          />
                         </div>
-                      ))}
+                        <div>
+                          <label className="block text-[10px] text-slate-500 font-bold mb-0.5">Cek Jam Mulai:</label>
+                          <select
+                            value={filterHour}
+                            onChange={e => setFilterHour(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-2 py-1.5 font-medium"
+                          >
+                            <option value="ALL">Semua Jam</option>
+                            {Array.from({ length: 24 }).map((_, h) => (
+                              <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {filteredSchedules.length === 0 ? (
+                        <div className="text-center py-6 text-slate-400 text-xs font-bold">Tidak ada jadwal yang cocok dengan filter.</div>
+                      ) : (
+                        filteredSchedules.map(s => {
+                          const brand = brands.find(b => b.id === s.brand_id);
+                          return (
+                            <div key={s.id} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1 relative overflow-hidden">
+                              <div className="w-1.5 absolute left-0 top-0 bottom-0" style={{ backgroundColor: s.color }}></div>
+                              <div className="pl-1">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-bold text-xs text-maroon">{getHariNama(s.date)}, {s.date}</span>
+                                  <span className="font-mono text-[10px] font-bold bg-white px-2 py-0.5 rounded border">{s.start_time}-{s.end_time}</span>
+                                </div>
+                                <div className="font-black text-xs text-slate-900 mt-0.5">{s.title}</div>
+                                <div className="text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                                  <span>{brand?.emoji} {brand?.name}</span>
+                                  <span>•</span>
+                                  <span className="font-bold text-slate-700">[{s.status}]</span>
+                                </div>
+                                {s.notes && <div className="text-[10px] text-amber-900 italic bg-amber-50 p-1.5 rounded-lg mt-1">📝 {s.notes}</div>}
+                                {isAdmin && (
+                                  <div className="flex justify-end gap-2 pt-1 border-t border-slate-200/60 mt-1">
+                                    <button onClick={() => handleDuplicate(s)} className="text-[10px] font-bold text-slate-600">📋 Salin</button>
+                                    <button onClick={() => handleOpenEdit(s)} className="text-[10px] font-bold text-blue-600">Edit</button>
+                                    <button onClick={() => handleDelete(s.id)} className="text-[10px] font-bold text-rose-600">Hapus</button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
                 )}
@@ -1339,7 +1446,7 @@
           {/* 🌟 3. MODAL POPUP PIN & FORM INPUT / EDIT JADWAL          */}
           {/* ========================================================= */}
 
-          {/* MODAL PIN ADMIN (PIN 101100) */}
+          {/* MODAL PIN ADMIN */}
           {pinInputModal && (
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xs p-6 text-center space-y-4 animate-in zoom-in duration-150">
