@@ -78,14 +78,14 @@
       console.error("Firebase init error:", err);
     }
 
-    // 🌟 KATEGORI LENGKAP DEFAULT (TERMASUK TAKE KONTEN VIDEO AFFILIATE)
+    // 🌟 KATEGORI RESMI (DENGAN "ME TIME")
     const REQUIRED_CATEGORIES = [
       { id: 'b_momuung', name: 'Mom Uung', emoji: '🍼', color: '#B6D7A8' },
       { id: 'b_aquapress', name: 'AquaPress', emoji: '💧', color: '#00FFFF' },
       { id: 'b_moell', name: 'Moell / Back Up', emoji: '✨', color: '#FACC15' },
       { id: 'b_konten', name: 'Take Konten Video Affiliate', emoji: '🎬', color: '#8B5CF6' },
       { id: 'b_sleep', name: 'Jam Tidur / Istirahat', emoji: '😴', color: '#6366F1' },
-      { id: 'b_lainlain', name: 'Lain-Lain (Dokter, Nyalon, Main)', emoji: '💅', color: '#EC4899' },
+      { id: 'b_lainlain', name: 'Me Time', emoji: '💅', color: '#EC4899' },
       { id: 'b_pribadi', name: 'Agenda Pribadi & OFF', emoji: '☕', color: '#EF4444' }
     ];
 
@@ -95,9 +95,9 @@
       { id: 's_sleep1', date: '2026-10-26', start_time: '23:00', end_time: '06:00', title: 'Istirahat Tidur Malam', brand_id: 'b_sleep', status: 'Tidur', color: '#6366F1', notes: 'Sleep hygiene 7 jam' },
       { id: 's3', date: '2026-10-27', start_time: '10:00', end_time: '14:00', title: 'Shift 2 Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Sesi Siang' },
       { id: 's_konten1', date: '2026-10-27', start_time: '15:00', end_time: '17:00', title: 'Take Video Review Skincare', brand_id: 'b_konten', status: 'Konten', color: '#8B5CF6', notes: 'Shopee & TikTok Affiliate Reels' },
-      { id: 's_salon1', date: '2026-10-27', start_time: '17:30', end_time: '19:00', title: 'Perawatan Rambut & Nyalon', brand_id: 'b_lainlain', status: 'Lain-Lain', color: '#EC4899', notes: 'Hair care & nails' },
+      { id: 's_salon1', date: '2026-10-27', start_time: '17:30', end_time: '19:00', title: 'Perawatan Rambut & Nyalon', brand_id: 'b_lainlain', status: 'Me Time', color: '#EC4899', notes: 'Me Time & Relaxation' },
       { id: 's4', date: '2026-10-28', start_time: '10:00', end_time: '14:00', title: 'Shift 2 Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Sesi Siang' },
-      { id: 's_doc1', date: '2026-10-28', start_time: '15:30', end_time: '17:00', title: 'Kontrol Gigi / Dokter', brand_id: 'b_lainlain', status: 'Lain-Lain', color: '#EC4899', notes: 'Check up berkala' },
+      { id: 's_doc1', date: '2026-10-28', start_time: '15:30', end_time: '17:00', title: 'Kontrol Gigi / Dokter', brand_id: 'b_lainlain', status: 'Me Time', color: '#EC4899', notes: 'Check up berkala' },
       { id: 's5', date: '2026-10-29', start_time: '00:00', end_time: '23:59', title: 'Mom Uung OFF', brand_id: 'b_momuung', status: 'OFF', color: '#EF4444', notes: 'Rest Day' },
       { id: 's6', date: '2026-10-29', start_time: '08:00', end_time: '12:00', title: 'Aquapress Pagi', brand_id: 'b_aquapress', status: 'LIVE', color: '#00FFFF', notes: 'Shift Pagi' },
       { id: 's7', date: '2026-10-29', start_time: '12:00', end_time: '16:00', title: 'Aquapress Siang', brand_id: 'b_aquapress', status: 'LIVE', color: '#00FFFF', notes: 'Shift Siang' },
@@ -175,7 +175,7 @@
       const [filterDate, setFilterDate] = useState('');
       const [filterHour, setFilterHour] = useState('ALL');
 
-      // 🌟 FIREBASE REALTIME SYNC DENGAN FITUR AUTO-MERGE KATEGORI BARU
+      // 🌟 FIREBASE AUTO-SYNC: OTOMATIS RENAME 'Lain-Lain' MENJADI 'Me Time' DI CLOUD
       useEffect(() => {
         if (!firebaseDb) return;
         const refSch = firebaseDb.ref('alisya_schedules');
@@ -189,15 +189,23 @@
         refBrands.on('value', snap => {
           const val = snap.val();
           if (val && Array.isArray(val)) {
-            // Auto-Merge: Pastikan b_konten, b_sleep, b_lainlain otomatis masuk jika belum ada di database lama
-            let merged = [...val];
             let needsUpdate = false;
+            let merged = val.map(b => {
+              // Jika di cloud masih nama lama, ubah langsung jadi Me Time
+              if (b.id === 'b_lainlain' && b.name !== 'Me Time') {
+                needsUpdate = true;
+                return { ...b, name: 'Me Time', emoji: '💅' };
+              }
+              return b;
+            });
+
             REQUIRED_CATEGORIES.forEach(req => {
               if (!merged.some(b => b.id === req.id)) {
                 merged.push(req);
                 needsUpdate = true;
               }
             });
+
             setBrands(merged);
             if (needsUpdate) {
               refBrands.set(merged);
@@ -360,7 +368,7 @@
       const shareToWhatsApp = () => {
         const todayItems = schedules.filter(s => s.date === selectedDate).sort((a,b) => a.start_time.localeCompare(b.start_time));
         const hari = getHariNama(selectedDate);
-        let text = `📢 *JADWAL ALISYA LIVE*\n🗓️ ${hari}, ${selectedDate}\n\n`;
+        let text = `📢 *JADWAL ALISYA*\n🗓️ ${hari}, ${selectedDate}\n\n`;
         if (todayItems.length === 0) {
           text += `☕ Hari ini Alisya tidak ada jadwal streaming.\n`;
         } else {
@@ -385,7 +393,7 @@
           })
           .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
 
-        let text = `📊 *REKAP JADWAL LIVE ALISYA*\n`;
+        let text = `📊 *REKAP JADWAL ALISYA*\n`;
         text += `🗓️ Bulan: *${monthName} ${currentYear}*\n`;
         text += `⏱️ Total Live: *${stats.totalLive} Shift* (~${stats.totalLiveHours} Jam)\n`;
         text += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
@@ -411,7 +419,7 @@
           });
         }
 
-        text += `━━━━━━━━━━━━━━━━━━━━━━\n_Dashboard Live Alisya Realtime Cloud_ 🚀`;
+        text += `━━━━━━━━━━━━━━━━━━━━━━\n_Dashboard Alisya Schedule Realtime Cloud_ 🚀`;
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
       };
 
@@ -442,6 +450,7 @@
         return { text: '✨ FREE SLOT', badge: 'bg-slate-100 text-slate-600 border-slate-200' };
       };
 
+      // 🌟 PERHITUNGAN STATISTIK DENGAN KATEGORI "ME TIME"
       const filteredByStatPeriod = useMemo(() => {
         return schedules.filter(s => {
           const [sY, sM, sD] = s.date.split('-').map(Number);
@@ -471,7 +480,7 @@
       }, [schedules, statPeriod, customStatDate, customStatMonth, customStatYear]);
 
       const stats = useMemo(() => {
-        let totalLive = 0, totalOff = 0, totalSick = 0, totalMeeting = 0, totalSleep = 0, totalLain = 0, totalKonten = 0;
+        let totalLive = 0, totalOff = 0, totalSick = 0, totalMeeting = 0, totalSleep = 0, totalMeTime = 0, totalKonten = 0;
         let totalLiveHours = 0, totalSleepHours = 0, totalKontenHours = 0;
 
         filteredByStatPeriod.forEach(s => {
@@ -499,8 +508,8 @@
           } else if (s.status === 'Konten' || s.brand_id === 'b_konten') {
             totalKonten++;
             totalKontenHours += dur;
-          } else if (s.status === 'Lain-Lain') {
-            totalLain++;
+          } else if (s.status === 'Me Time' || s.status === 'Lain-Lain' || s.brand_id === 'b_lainlain') {
+            totalMeTime++;
           }
         });
 
@@ -511,7 +520,7 @@
           return { name: b.name, emoji: b.emoji, totalShift: list.length, liveCount, offCount, totalJam: liveCount * 2, color: b.color };
         });
 
-        return { totalLive, totalOff, totalSick, totalMeeting, totalSleep, totalLain, totalKonten, totalLiveHours, totalSleepHours, totalKontenHours, perBrand };
+        return { totalLive, totalOff, totalSick, totalMeeting, totalSleep, totalMeTime, totalKonten, totalLiveHours, totalSleepHours, totalKontenHours, perBrand };
       }, [filteredByStatPeriod, brands]);
 
       const periodLabel = useMemo(() => {
@@ -579,9 +588,9 @@
           donutInst.current = new Chart(donutCanvas.current, {
             type: 'doughnut',
             data: {
-              labels: ['🟢 LIVE', '🎬 Take Konten', '😴 Jam Tidur', '💅 Lain-Lain/Nyalon', '☕ OFF', '💬 Meeting'],
+              labels: ['🟢 LIVE', '🎬 Take Konten', '😴 Jam Tidur', '💅 Me Time', '☕ OFF', '💬 Meeting'],
               datasets: [{
-                data: [stats.totalLive, stats.totalKonten, stats.totalSleep, stats.totalLain, stats.totalOff, stats.totalMeeting],
+                data: [stats.totalLive, stats.totalKonten, stats.totalSleep, stats.totalMeTime, stats.totalOff, stats.totalMeeting],
                 backgroundColor: ['#B6D7A8', '#8B5CF6', '#6366F1', '#EC4899', '#EF4444', '#00FFFF'],
                 borderWidth: 2
               }]
@@ -681,7 +690,7 @@
             </div>
           )}
 
-          {/* HEADER UTAMA */}
+          {/* HEADER UTAMA: Alisya Schedule */}
           <header className="bg-maroon text-white px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3 shadow-lg sticky top-0 z-40">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center font-black text-rose-300 text-xl border border-white/20 shadow-inner">
@@ -691,7 +700,7 @@
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="font-extrabold text-base tracking-wide">Alisya Schedule</h1>
                   <span className="bg-white/15 text-rose-200 border border-white/25 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider">
-                    v2.5.0-PRO
+                    v2.6.0-PRO
                   </span>
                   {isAdmin ? (
                     <span className="bg-amber-400 text-amber-950 px-2 py-0.5 rounded-md text-[10px] font-black shadow">👑 ADMIN</span>
@@ -808,7 +817,7 @@
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
                           <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
-                          <span className="text-xs font-extrabold uppercase tracking-widest text-rose-200">Radar Jadwal Live Alisya</span>
+                          <span className="text-xs font-extrabold uppercase tracking-widest text-rose-200">Radar Jadwal Alisya</span>
                           <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold border ${getDayScheduleDensity(selectedDate).badge}`}>
                             {getDayScheduleDensity(selectedDate).text}
                           </span>
@@ -1085,7 +1094,7 @@
                     <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
                       <div className="space-y-1">
                         <h3 className="font-black text-sm text-slate-800">📊 Filter Rentang Waktu Statistik</h3>
-                        <p className="text-xs text-slate-500">Pilih periode dan tanggal untuk mengevaluasi jam kerja, tidur, dan take konten:</p>
+                        <p className="text-xs text-slate-500">Pilih periode dan tanggal untuk mengevaluasi jam kerja, tidur, dan me time:</p>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3">
@@ -1120,6 +1129,7 @@
                       </div>
                     </div>
 
+                    {/* KARTU ANGKA KPI BERDASARKAN PERIODE YANG DIPILIH */}
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                       <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
                         <div className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
@@ -1144,10 +1154,10 @@
                       </div>
                       <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
                         <div className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                          <span>💅</span><span>LAIN-LAIN (NYALON / DOKTER)</span>
+                          <span>💅</span><span>ME TIME</span>
                         </div>
-                        <div className="text-3xl font-black text-pink-600 mt-2">{stats.totalLain}</div>
-                        <div className="text-xs text-slate-500 mt-2">Me-Time & Perawatan</div>
+                        <div className="text-3xl font-black text-pink-600 mt-2">{stats.totalMeTime}</div>
+                        <div className="text-xs text-slate-500 mt-2">Jadwal Me Time & Relax</div>
                       </div>
                       <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
                         <div className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
@@ -1158,6 +1168,7 @@
                       </div>
                     </div>
 
+                    {/* DUA DIAGRAM PC */}
                     <div className="grid grid-cols-2 gap-6">
                       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                         <div className="flex justify-between items-center mb-4">
@@ -1230,7 +1241,7 @@
                           <option value="LIVE">🟢 LIVE</option>
                           <option value="Konten">🎬 Take Konten</option>
                           <option value="Tidur">😴 Tidur</option>
-                          <option value="Lain-Lain">💅 Lain-Lain</option>
+                          <option value="Me Time">💅 Me Time</option>
                           <option value="Meeting">💬 Meeting</option>
                           <option value="OFF">☕ OFF</option>
                           <option value="Sakit / Medis">🏥 Sakit / Medis</option>
@@ -1321,12 +1332,12 @@
                   </div>
                 )}
 
-                {/* 🎨 WARNA BRAND & KATEGORI PC (LENGKAP TERMASUK TAKE KONTEN VIDEO) */}
+                {/* 🎨 WARNA BRAND & KATEGORI PC (TERMASUK ME TIME) */}
                 {pcSubTab === 'colors' && (
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4 max-w-2xl mx-auto">
                     <div>
                       <h3 className="font-black text-slate-800 text-base">🎨 Pengaturan Warna Dinamis</h3>
-                      <p className="text-xs text-slate-500 mt-1">Ubah warna visual brand, take konten video affiliate, jam tidur, dan agenda lain-lain dengan Color Picker.</p>
+                      <p className="text-xs text-slate-500 mt-1">Ubah warna visual brand, take konten video affiliate, jam tidur, dan jadwal me time dengan Color Picker.</p>
                     </div>
 
                     <div className="space-y-3">
@@ -1417,7 +1428,7 @@
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-1.5">
                           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-                          <span className="text-[10px] font-extrabold uppercase tracking-widest text-rose-200">Radar Jadwal Live</span>
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest text-rose-200">Radar Jadwal Alisya</span>
                         </div>
                         <button
                           onClick={shareToWhatsApp}
@@ -1637,7 +1648,7 @@
                   </div>
                 )}
 
-                {/* STATISTIK MODE HP */}
+                {/* STATISTIK MODE HP (DILENGKAPI ME TIME) */}
                 {activeTab === 'kpi' && (
                   <div className="space-y-4">
                     <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm space-y-2">
@@ -1694,9 +1705,9 @@
                         <div className="text-[10px] text-slate-400 mt-1 font-bold">≈ {stats.totalSleepHours} Jam Tidur</div>
                       </div>
                       <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase">💅 Lain-Lain</div>
-                        <div className="text-3xl font-black text-pink-600 mt-1">{stats.totalLain}</div>
-                        <div className="text-[10px] text-slate-400 mt-1">Dokter / Salon</div>
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">💅 Me Time</div>
+                        <div className="text-3xl font-black text-pink-600 mt-1">{stats.totalMeTime}</div>
+                        <div className="text-[10px] text-slate-400 mt-1">Jadwal Me Time</div>
                       </div>
                     </div>
 
@@ -1755,7 +1766,7 @@
                           <option value="LIVE">🟢 LIVE</option>
                           <option value="Konten">🎬 Take Konten</option>
                           <option value="Tidur">😴 Tidur</option>
-                          <option value="Lain-Lain">💅 Lain-Lain</option>
+                          <option value="Me Time">💅 Me Time</option>
                           <option value="Meeting">💬 Meeting</option>
                           <option value="OFF">☕ OFF</option>
                           <option value="Sakit / Medis">🏥 Sakit</option>
@@ -1907,7 +1918,7 @@
             </div>
           )}
 
-          {/* 🌟 MODAL FORM INPUT/EDIT JADWAL: DROPDOWN KATEGORI/BRAND LANGSUNG LENGKAP */}
+          {/* MODAL FORM INPUT/EDIT JADWAL */}
           {modalOpen && (
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
               <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
@@ -1923,12 +1934,11 @@
                       required
                       value={formData.title}
                       onChange={e => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="Contoh: Shift 3 Mom Uung / Take Konten Skincare"
+                      placeholder="Contoh: Shift 3 Mom Uung / Me Time / Take Konten"
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 font-bold text-slate-900 focus:ring-2 focus:ring-maroon focus:outline-none"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    {/* DROPDOWN KATEGORI/BRAND DENGAN TAKE KONTEN VIDEO AFFILIATE */}
                     <div>
                       <label className="block font-bold text-slate-700 mb-1">Kategori / Brand *</label>
                       <select
@@ -1938,7 +1948,7 @@
                           let newStatus = formData.status;
                           if (newBrandId === 'b_konten') newStatus = 'Konten';
                           else if (newBrandId === 'b_sleep') newStatus = 'Tidur';
-                          else if (newBrandId === 'b_lainlain') newStatus = 'Lain-Lain';
+                          else if (newBrandId === 'b_lainlain') newStatus = 'Me Time';
                           else if (newBrandId === 'b_pribadi') newStatus = 'OFF';
                           setFormData({ ...formData, brand_id: newBrandId, status: newStatus });
                         }}
@@ -1961,7 +1971,7 @@
                         <option value="LIVE">🟢 LIVE</option>
                         <option value="Konten">🎬 Take Konten Video</option>
                         <option value="Tidur">😴 Tidur / Istirahat</option>
-                        <option value="Lain-Lain">💅 Lain-Lain (Dokter, Nyalon)</option>
+                        <option value="Me Time">💅 Me Time</option>
                         <option value="Meeting">💬 Meeting</option>
                         <option value="OFF">☕ OFF (Libur)</option>
                         <option value="Sakit / Medis">🏥 Sakit / Medis</option>
@@ -2006,7 +2016,7 @@
                       rows="2"
                       value={formData.notes}
                       onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="Target GMV, konsep video affiliate, briefing pakaian, atau catatan sesi..."
+                      placeholder="Target GMV, agenda me time, konsep video affiliate, atau catatan sesi..."
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 font-medium"
                     ></textarea>
                   </div>
