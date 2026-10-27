@@ -97,6 +97,7 @@
       { id: 's_salon1', date: '2026-10-27', start_time: '20:00', end_time: '22:00', title: 'Me Time', brand_id: 'b_lainlain', status: 'Me Time', color: '#EC4899', notes: 'Relax' }
     ];
 
+    // 🌟 RENTANG WAKTU DIGITAL STANDAR (00:00 - 23:59)
     const TIME_SLOTS = [
       { label: "00:00 - 02:00", start: "00:00", end: "02:00" },
       { label: "02:00 - 04:00", start: "02:00", end: "04:00" },
@@ -109,14 +110,20 @@
       { label: "16:00 - 18:00", start: "16:00", end: "18:00" },
       { label: "18:00 - 20:00", start: "18:00", end: "20:00" },
       { label: "20:00 - 22:00", start: "20:00", end: "22:00" },
-      { label: "22:00 - 24:00", start: "22:00", end: "24:00" }
+      { label: "22:00 - 23:59", start: "22:00", end: "23:59" }
     ];
 
-    const TIME_OPTIONS_24H = [];
+    // Pilihan Opsi Jam Digital 00:00 s/d 23:59
+    const START_TIME_OPTIONS = [];
     for (let h = 0; h < 24; h++) {
       const hh = String(h).padStart(2, '0');
-      TIME_OPTIONS_24H.push(`${hh}:00`);
-      TIME_OPTIONS_24H.push(`${hh}:30`);
+      START_TIME_OPTIONS.push(`${hh}:00`);
+      START_TIME_OPTIONS.push(`${hh}:30`);
+    }
+
+    const END_TIME_OPTIONS = [...START_TIME_OPTIONS];
+    if (!END_TIME_OPTIONS.includes("23:59")) {
+      END_TIME_OPTIONS.push("23:59");
     }
 
     const getHariNama = (dateString) => {
@@ -126,9 +133,13 @@
     };
 
     const calculateDurationHours = (start, end) => {
-      if (!start || !end || (start === '00:00' && end === '23:59')) return 0;
+      if (!start || !end) return 0;
       const [sh, sm] = start.split(':').map(Number);
-      const [eh, em] = end.split(':').map(Number);
+      let [eh, em] = end.split(':').map(Number);
+      if (end === '23:59') {
+        eh = 24;
+        em = 0;
+      }
       let diff = (eh * 60 + em) - (sh * 60 + sm);
       if (diff <= 0) {
         diff = Math.max(0, (24 * 60 - (sh * 60 + sm)) + (eh * 60 + em));
@@ -323,7 +334,7 @@
       };
 
       const exportCSV = () => {
-        const headers = ["Hari", "Tanggal", "Jam Mulai (24H)", "Jam Selesai (24H)", "Judul Shift", "Kategori/Brand", "Status", "Catatan"];
+        const headers = ["Hari", "Tanggal", "Jam Mulai (Digital)", "Jam Selesai (Digital)", "Judul Shift", "Kategori/Brand", "Status", "Catatan"];
         const rows = schedules.map(s => [
           `"${getHariNama(s.date)}"`,
           s.date,
@@ -348,7 +359,7 @@
       const shareToWhatsApp = () => {
         const todayItems = schedules.filter(s => s.date === selectedDate).sort((a,b) => a.start_time.localeCompare(b.start_time));
         const hari = getHariNama(selectedDate);
-        let text = `📢 *JADWAL HARIAN ALISYA (24 JAM)*\n🗓️ ${hari}, ${selectedDate}\n\n`;
+        let text = `📢 *JADWAL HARIAN ALISYA (00:00 - 23:59)*\n🗓️ ${hari}, ${selectedDate}\n\n`;
         if (todayItems.length === 0) {
           text += `☕ Hari ini Alisya tidak ada agenda terjadwal.\n`;
         } else {
@@ -373,7 +384,7 @@
           })
           .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
 
-        let text = `📊 *REKAP JADWAL ALISYA (24 JAM)*\n`;
+        let text = `📊 *REKAP JADWAL ALISYA (00:00 - 23:59)*\n`;
         text += `🗓️ Bulan: *${monthName} ${currentYear}*\n`;
         text += `⏱️ Total Live: *${stats.totalLive} Shift*\n`;
         text += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
@@ -412,14 +423,12 @@
       const availableSlotsForSelectedDate = useMemo(() => {
         return TIME_SLOTS.filter(slot => {
           const isBusy = selectedDaySchedules.some(s => {
-            if (s.start_time === '00:00' && s.end_time === '23:59') return true;
-            return s.start_time < slot.end && s.end_time > slot.start;
+            return (s.start_time < slot.end && s.end_time > slot.start);
           });
           return !isBusy;
         });
       }, [selectedDaySchedules]);
 
-      // 🌟 SISTEM DETEKSI KEPADATAN HARIAN KOMPREHENSIF (SEMUA AKTIVITAS PRODUKTIF BERPENGARUH)
       const getDayScheduleDensity = (dateStr) => {
         const dayShifts = schedules.filter(s => s.date === dateStr);
         if (dayShifts.length === 0) return { text: '✨ FREE SLOT', badge: 'bg-slate-100 text-slate-600 border-slate-200' };
@@ -427,7 +436,6 @@
         const hasOff = dayShifts.some(s => s.status === 'OFF');
         if (hasOff) return { text: '☕ LIBUR / OFF', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
 
-        // Hitung total jam produktif (Live, Take Konten, Me Time, Meeting) - Kecualikan Jam Tidur
         let productiveHours = 0;
         let productiveCount = 0;
 
@@ -702,7 +710,7 @@
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="font-extrabold text-base tracking-wide">Alisya Schedule</h1>
                   <span className="bg-white/15 text-rose-200 border border-white/25 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider">
-                    v2.7.0-PRO
+                    v2.8.0-PRO
                   </span>
                   {isAdmin ? (
                     <span className="bg-amber-400 text-amber-950 px-2 py-0.5 rounded-md text-[10px] font-black shadow">👑 ADMIN</span>
@@ -855,7 +863,7 @@
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
                           <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
-                          <span className="text-xs font-extrabold uppercase tracking-widest text-rose-200">Radar Jadwal Alisya (24 Jam)</span>
+                          <span className="text-xs font-extrabold uppercase tracking-widest text-rose-200">Radar Jadwal Alisya (00:00 - 23:59)</span>
                           <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold border ${getDayScheduleDensity(selectedDate).badge}`}>
                             {getDayScheduleDensity(selectedDate).text}
                           </span>
@@ -893,7 +901,7 @@
                         <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-5 space-y-3 shadow-sm">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-black text-emerald-950 flex items-center gap-2">
-                              <span>🟢</span><span>Available Schedule (24 Jam)</span>
+                              <span>🟢</span><span>Available Schedule (00:00 - 23:59)</span>
                             </span>
                             <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
                               {availableSlotsForSelectedDate.length} Slot Siap Pakai
@@ -1019,7 +1027,7 @@
                   </div>
                 )}
 
-                {/* 🌟 SPREADSHEET PC (STATUS HARI RESPONSIF TERHADAP SEMUA AKTIVITAS PRODUKTIF) */}
+                {/* SPREADSHEET PC */}
                 {pcSubTab === 'calendar' && (
                   <div className="space-y-4">
                     <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4 text-xs">
@@ -1084,7 +1092,6 @@
                                     </div>
                                   </td>
 
-                                  {/* STATUS KEPADATAN HARI INI OTOMATIS BERUBAH KE MEDIUM / FULL */}
                                   <td className="border-r border-slate-200 p-1.5 text-center whitespace-nowrap">
                                     <span className={`px-2 py-1 rounded-xl text-[10px] border shadow-xs ${density.badge}`}>
                                       {density.text}
@@ -1094,7 +1101,6 @@
                                   {TIME_SLOTS.map(slot => {
                                     const slotItems = schedules.filter(s => {
                                       if (s.date !== dateStr) return false;
-                                      if (s.start_time === '00:00' && s.end_time === '23:59') return true;
                                       return (s.start_time < slot.end && s.end_time > slot.start);
                                     });
 
@@ -1145,7 +1151,7 @@
                   <div className="space-y-6">
                     <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
                       <div className="space-y-1">
-                        <h3 className="font-black text-sm text-slate-800">📊 Filter Rentang Waktu Statistik (24 Jam)</h3>
+                        <h3 className="font-black text-sm text-slate-800">📊 Filter Rentang Waktu Statistik (00:00 - 23:59)</h3>
                         <p className="text-xs text-slate-500">Pilih periode dan tanggal untuk mengevaluasi jam kerja, tidur, dan me time:</p>
                       </div>
 
@@ -1308,7 +1314,7 @@
                       </div>
                       <div>
                         <div className="flex justify-between items-center mb-1">
-                          <label className="text-slate-500">Cek Jam Mulai (24H):</label>
+                          <label className="text-slate-500">Cek Jam Mulai (Digital):</label>
                           {(searchQuery || filterBrand !== 'ALL' || filterStatus !== 'ALL' || filterDate || filterHour !== 'ALL') && (
                             <button onClick={handleResetFilter} className="text-[10px] text-rose-600 font-bold hover:underline">Reset</button>
                           )}
@@ -1332,7 +1338,7 @@
                           <tr>
                             <th className="px-4 py-3.5">Hari</th>
                             <th className="px-4 py-3.5">Tanggal</th>
-                            <th className="px-4 py-3.5">Jam (24H)</th>
+                            <th className="px-4 py-3.5">Jam Digital</th>
                             <th className="px-4 py-3.5">Judul Shift / Agenda</th>
                             <th className="px-4 py-3.5">Kategori</th>
                             <th className="px-4 py-3.5">Status</th>
@@ -1505,11 +1511,11 @@
                       </div>
                     </div>
 
-                    {/* AVAILABLE SCHEDULE CARD (24 JAM) */}
+                    {/* AVAILABLE SCHEDULE CARD (00:00 - 23:59) */}
                     <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-3.5 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black text-emerald-900 flex items-center gap-1.5">
-                          <span>🟢</span><span>Available Schedule (24 Jam)</span>
+                          <span>🟢</span><span>Available Schedule (00:00 - 23:59)</span>
                         </span>
                         <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
                           {availableSlotsForSelectedDate.length} Slot Siap Pakai
@@ -1626,7 +1632,7 @@
                   </div>
                 )}
 
-                {/* SPREADSHEET MODE HP (WARNA PENUH TIAP JAM) */}
+                {/* SPREADSHEET MODE HP */}
                 {activeTab === 'calendar' && (
                   <div className="space-y-3">
                     <button
@@ -1679,7 +1685,6 @@
                                   {TIME_SLOTS.map(slot => {
                                     const slotItems = schedules.filter(s => {
                                       if (s.date !== dateStr) return false;
-                                      if (s.start_time === '00:00' && s.end_time === '23:59') return true;
                                       return (s.start_time < slot.end && s.end_time > slot.start);
                                     });
 
@@ -1846,7 +1851,7 @@
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] text-slate-500 font-bold mb-0.5">Cek Jam Mulai (24H):</label>
+                          <label className="block text-[10px] text-slate-500 font-bold mb-0.5">Cek Jam Mulai (Digital):</label>
                           <select
                             value={filterHour}
                             onChange={e => setFilterHour(e.target.value)}
@@ -1981,7 +1986,7 @@
             </div>
           )}
 
-          {/* MODAL FORM INPUT JADWAL */}
+          {/* 🌟 MODAL FORM INPUT JADWAL: STANDAR DIGITAL (00:00 - 23:59) */}
           {modalOpen && (
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
               <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
@@ -2054,30 +2059,29 @@
                   
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">Jam Mulai (00:00 - 24:00) *</label>
+                      <label className="block font-bold text-slate-700 mb-1">Jam Mulai (Digital) *</label>
                       <select
                         required
                         value={formData.start_time}
                         onChange={e => setFormData({ ...formData, start_time: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 font-bold font-mono text-slate-900"
                       >
-                        {TIME_OPTIONS_24H.map(t => (
+                        {START_TIME_OPTIONS.map(t => (
                           <option key={t} value={t}>{t}</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">Jam Selesai (00:00 - 24:00) *</label>
+                      <label className="block font-bold text-slate-700 mb-1">Jam Selesai (Digital) *</label>
                       <select
                         required
                         value={formData.end_time}
                         onChange={e => setFormData({ ...formData, end_time: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 font-bold font-mono text-slate-900"
                       >
-                        {TIME_OPTIONS_24H.map(t => (
+                        {END_TIME_OPTIONS.map(t => (
                           <option key={t} value={t}>{t}</option>
                         ))}
-                        <option value="24:00">24:00</option>
                       </select>
                     </div>
                   </div>
