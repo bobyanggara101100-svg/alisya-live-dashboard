@@ -92,8 +92,8 @@
       { id: 's1', date: '2026-10-26', start_time: '14:00', end_time: '18:00', title: 'Shift 3 Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Target GMV 20 Juta' },
       { id: 's2', date: '2026-10-26', start_time: '10:00', end_time: '12:00', title: 'Meet Aya', brand_id: 'b_pribadi', status: 'Meeting', color: '#00FFFF', notes: 'Briefing Outfit' },
       { id: 's_sleep1', date: '2026-10-26', start_time: '23:00', end_time: '06:00', title: 'Istirahat Tidur Malam', brand_id: 'b_sleep', status: 'Tidur', color: '#6366F1', notes: 'Sleep hygiene 7 jam' },
-      { id: 's3', date: '2026-10-27', start_time: '12:00', end_time: '19:00', title: 'Live Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Sesi Siang-Sore' },
-      { id: 's_sleep2', date: '2026-10-27', start_time: '00:00', end_time: '08:00', title: 'Turu Malam', brand_id: 'b_sleep', status: 'Tidur', color: '#6366F1', notes: 'Istirahat' },
+      { id: 's3', date: '2026-10-27', start_time: '11:00', end_time: '19:00', title: 'Live Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Sesi Siang-Sore' },
+      { id: 's_konten_sample', date: '2026-10-27', start_time: '06:00', end_time: '08:00', title: 'Take Konten Video', brand_id: 'b_konten', status: 'Konten', color: '#8B5CF6', notes: 'Shopee & TikTok Affiliate' },
       { id: 's_salon1', date: '2026-10-27', start_time: '20:00', end_time: '22:00', title: 'Me Time', brand_id: 'b_lainlain', status: 'Me Time', color: '#EC4899', notes: 'Relax' }
     ];
 
@@ -111,6 +111,13 @@
       { label: "20:00 - 22:00", start: "20:00", end: "22:00" },
       { label: "22:00 - 24:00", start: "22:00", end: "24:00" }
     ];
+
+    const TIME_OPTIONS_24H = [];
+    for (let h = 0; h < 24; h++) {
+      const hh = String(h).padStart(2, '0');
+      TIME_OPTIONS_24H.push(`${hh}:00`);
+      TIME_OPTIONS_24H.push(`${hh}:30`);
+    }
 
     const getHariNama = (dateString) => {
       if (!dateString) return '-';
@@ -225,7 +232,7 @@
       };
 
       const [currentYear, setCurrentYear] = useState(2026);
-      const [currentMonth, setCurrentMonth] = useState(9); // Oktober 2026
+      const [currentMonth, setCurrentMonth] = useState(9);
 
       const [modalOpen, setModalOpen] = useState(false);
       const [selectedSchedule, setSelectedSchedule] = useState(null);
@@ -316,7 +323,7 @@
       };
 
       const exportCSV = () => {
-        const headers = ["Hari", "Tanggal", "Jam Mulai", "Jam Selesai", "Judul Shift", "Kategori/Brand", "Status", "Catatan"];
+        const headers = ["Hari", "Tanggal", "Jam Mulai (24H)", "Jam Selesai (24H)", "Judul Shift", "Kategori/Brand", "Status", "Catatan"];
         const rows = schedules.map(s => [
           `"${getHariNama(s.date)}"`,
           s.date,
@@ -341,9 +348,9 @@
       const shareToWhatsApp = () => {
         const todayItems = schedules.filter(s => s.date === selectedDate).sort((a,b) => a.start_time.localeCompare(b.start_time));
         const hari = getHariNama(selectedDate);
-        let text = `📢 *JADWAL ALISYA*\n🗓️ ${hari}, ${selectedDate}\n\n`;
+        let text = `📢 *JADWAL HARIAN ALISYA (24 JAM)*\n🗓️ ${hari}, ${selectedDate}\n\n`;
         if (todayItems.length === 0) {
-          text += `☕ Hari ini Alisya tidak ada jadwal streaming.\n`;
+          text += `☕ Hari ini Alisya tidak ada agenda terjadwal.\n`;
         } else {
           todayItems.forEach((s, idx) => {
             const b = brands.find(brand => brand.id === s.brand_id);
@@ -366,13 +373,13 @@
           })
           .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
 
-        let text = `📊 *REKAP JADWAL ALISYA*\n`;
+        let text = `📊 *REKAP JADWAL ALISYA (24 JAM)*\n`;
         text += `🗓️ Bulan: *${monthName} ${currentYear}*\n`;
         text += `⏱️ Total Live: *${stats.totalLive} Shift*\n`;
         text += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
         if (monthItems.length === 0) {
-          text += `Belum ada agenda jadwal siaran terdaftar di bulan ini.\n`;
+          text += `Belum ada agenda jadwal terdaftar di bulan ini.\n`;
         } else {
           const grouped = {};
           monthItems.forEach(item => {
@@ -412,14 +419,34 @@
         });
       }, [selectedDaySchedules]);
 
+      // 🌟 SISTEM DETEKSI KEPADATAN HARIAN KOMPREHENSIF (SEMUA AKTIVITAS PRODUKTIF BERPENGARUH)
       const getDayScheduleDensity = (dateStr) => {
         const dayShifts = schedules.filter(s => s.date === dateStr);
-        const liveShifts = dayShifts.filter(s => s.status === 'LIVE');
+        if (dayShifts.length === 0) return { text: '✨ FREE SLOT', badge: 'bg-slate-100 text-slate-600 border-slate-200' };
+
         const hasOff = dayShifts.some(s => s.status === 'OFF');
         if (hasOff) return { text: '☕ LIBUR / OFF', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
-        if (liveShifts.length >= 3) return { text: '🔥 FULL SCHEDULE', badge: 'bg-rose-500 text-white font-black' };
-        if (liveShifts.length === 2) return { text: '⚡ MEDIUM', badge: 'bg-amber-100 text-amber-900 border-amber-300 font-bold' };
-        if (liveShifts.length === 1) return { text: '🟢 LOW', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold' };
+
+        // Hitung total jam produktif (Live, Take Konten, Me Time, Meeting) - Kecualikan Jam Tidur
+        let productiveHours = 0;
+        let productiveCount = 0;
+
+        dayShifts.forEach(s => {
+          if (s.status !== 'Tidur' && s.brand_id !== 'b_sleep') {
+            productiveCount++;
+            productiveHours += calculateDurationHours(s.start_time, s.end_time);
+          }
+        });
+
+        if (productiveHours >= 8 || productiveCount >= 4) {
+          return { text: '🔥 FULL SCHEDULE', badge: 'bg-rose-500 text-white font-black shadow-sm' };
+        }
+        if (productiveHours >= 4 || productiveCount >= 2) {
+          return { text: '⚡ MEDIUM', badge: 'bg-amber-100 text-amber-900 border-amber-300 font-bold' };
+        }
+        if (productiveHours > 0 || productiveCount > 0) {
+          return { text: '🟢 LOW', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold' };
+        }
         return { text: '✨ FREE SLOT', badge: 'bg-slate-100 text-slate-600 border-slate-200' };
       };
 
@@ -453,7 +480,7 @@
 
       const stats = useMemo(() => {
         let totalLive = 0, totalOff = 0, totalSick = 0, totalMeeting = 0, totalSleep = 0, totalMeTime = 0, totalKonten = 0;
-        let totalLiveHours = 0, totalSleepHours = 0, totalKontenHours = 0;
+        let totalLiveHours = 0, totalSleepHours = 0, totalKontenHours = 0, totalMeTimeHours = 0;
 
         filteredByStatPeriod.forEach(s => {
           const dur = calculateDurationHours(s.start_time, s.end_time);
@@ -475,15 +502,18 @@
             totalKontenHours += dur;
           } else if (s.status === 'Me Time' || s.status === 'Lain-Lain' || s.brand_id === 'b_lainlain') {
             totalMeTime++;
+            totalMeTimeHours += dur;
           }
         });
 
         if (statPeriod === 'daily') {
           totalLiveHours = Math.min(24, Math.round(totalLiveHours * 10) / 10);
           totalSleepHours = Math.min(24, Math.round(totalSleepHours * 10) / 10);
+          totalKontenHours = Math.min(24, Math.round(totalKontenHours * 10) / 10);
         } else {
           totalLiveHours = Math.round(totalLiveHours * 10) / 10;
           totalSleepHours = Math.round(totalSleepHours * 10) / 10;
+          totalKontenHours = Math.round(totalKontenHours * 10) / 10;
         }
 
         const perBrand = brands.map(b => {
@@ -493,7 +523,7 @@
           return { name: b.name, emoji: b.emoji, totalShift: list.length, liveCount, offCount, totalJam: liveCount * 2, color: b.color };
         });
 
-        return { totalLive, totalOff, totalSick, totalMeeting, totalSleep, totalMeTime, totalKonten, totalLiveHours, totalSleepHours, totalKontenHours, perBrand };
+        return { totalLive, totalOff, totalSick, totalMeeting, totalSleep, totalMeTime, totalKonten, totalLiveHours, totalSleepHours, totalKontenHours, totalMeTimeHours, perBrand };
       }, [filteredByStatPeriod, brands, statPeriod]);
 
       const periodLabel = useMemo(() => {
@@ -703,7 +733,7 @@
               </button>
             </div>
 
-            {/* NAVIGASI BULAN & TAHUN DROPDOWN */}
+            {/* NAVIGASI BULAN & TAHUN */}
             <div className="flex items-center gap-2">
               <div className="flex items-center bg-white/10 rounded-2xl p-1 text-xs font-bold border border-white/20 shadow-sm gap-1">
                 <button
@@ -825,13 +855,13 @@
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
                           <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
-                          <span className="text-xs font-extrabold uppercase tracking-widest text-rose-200">Radar Jadwal Alisya</span>
+                          <span className="text-xs font-extrabold uppercase tracking-widest text-rose-200">Radar Jadwal Alisya (24 Jam)</span>
                           <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold border ${getDayScheduleDensity(selectedDate).badge}`}>
                             {getDayScheduleDensity(selectedDate).text}
                           </span>
                         </div>
                         <h2 className="text-2xl font-black">{getHariNama(selectedDate)}, {selectedDate}</h2>
-                        <p className="text-xs text-rose-100">{selectedDaySchedules.length} Sesi Terjadwal • {selectedDaySchedules.filter(s=>s.status==='LIVE').length * 2} Jam Siaran Langsung</p>
+                        <p className="text-xs text-rose-100">{selectedDaySchedules.length} Sesi Terjadwal • {selectedDaySchedules.filter(s=>s.status!=='Tidur').length} Aktivitas Produktif</p>
                       </div>
 
                       <div className="flex items-center gap-3">
@@ -863,7 +893,7 @@
                         <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-5 space-y-3 shadow-sm">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-black text-emerald-950 flex items-center gap-2">
-                              <span>🟢</span><span>Available Schedule (Slot Jam Kosong)</span>
+                              <span>🟢</span><span>Available Schedule (24 Jam)</span>
                             </span>
                             <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
                               {availableSlotsForSelectedDate.length} Slot Siap Pakai
@@ -989,7 +1019,7 @@
                   </div>
                 )}
 
-                {/* 🌟 SPREADSHEET PC: WARNA PENUH DI SETIAP JAM YANG DILEWATI (BLOCK CONTINUOUS FILL) */}
+                {/* 🌟 SPREADSHEET PC (STATUS HARI RESPONSIF TERHADAP SEMUA AKTIVITAS PRODUKTIF) */}
                 {pcSubTab === 'calendar' && (
                   <div className="space-y-4">
                     <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4 text-xs">
@@ -1054,6 +1084,7 @@
                                     </div>
                                   </td>
 
+                                  {/* STATUS KEPADATAN HARI INI OTOMATIS BERUBAH KE MEDIUM / FULL */}
                                   <td className="border-r border-slate-200 p-1.5 text-center whitespace-nowrap">
                                     <span className={`px-2 py-1 rounded-xl text-[10px] border shadow-xs ${density.badge}`}>
                                       {density.text}
@@ -1061,7 +1092,6 @@
                                   </td>
 
                                   {TIME_SLOTS.map(slot => {
-                                    // 🌟 DIWARNAI PENUH: Seluruh sel jam yang beririsan dengan rentang jadwal otomatis terisi warna!
                                     const slotItems = schedules.filter(s => {
                                       if (s.date !== dateStr) return false;
                                       if (s.start_time === '00:00' && s.end_time === '23:59') return true;
@@ -1115,7 +1145,7 @@
                   <div className="space-y-6">
                     <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
                       <div className="space-y-1">
-                        <h3 className="font-black text-sm text-slate-800">📊 Filter Rentang Waktu Statistik</h3>
+                        <h3 className="font-black text-sm text-slate-800">📊 Filter Rentang Waktu Statistik (24 Jam)</h3>
                         <p className="text-xs text-slate-500">Pilih periode dan tanggal untuk mengevaluasi jam kerja, tidur, dan me time:</p>
                       </div>
 
@@ -1278,7 +1308,7 @@
                       </div>
                       <div>
                         <div className="flex justify-between items-center mb-1">
-                          <label className="text-slate-500">Cek Jam Mulai:</label>
+                          <label className="text-slate-500">Cek Jam Mulai (24H):</label>
                           {(searchQuery || filterBrand !== 'ALL' || filterStatus !== 'ALL' || filterDate || filterHour !== 'ALL') && (
                             <button onClick={handleResetFilter} className="text-[10px] text-rose-600 font-bold hover:underline">Reset</button>
                           )}
@@ -1286,7 +1316,7 @@
                         <select
                           value={filterHour}
                           onChange={e => setFilterHour(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-mono"
                         >
                           <option value="ALL">Semua Jam</option>
                           {Array.from({ length: 24 }).map((_, h) => (
@@ -1302,7 +1332,7 @@
                           <tr>
                             <th className="px-4 py-3.5">Hari</th>
                             <th className="px-4 py-3.5">Tanggal</th>
-                            <th className="px-4 py-3.5">Jam</th>
+                            <th className="px-4 py-3.5">Jam (24H)</th>
                             <th className="px-4 py-3.5">Judul Shift / Agenda</th>
                             <th className="px-4 py-3.5">Kategori</th>
                             <th className="px-4 py-3.5">Status</th>
@@ -1434,7 +1464,7 @@
                 </button>
                 <button
                   onClick={exportCSV}
-                  className="flex-shrink-0 ml-auto bg-slate-100 text-slate-800 border border-slate-300 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1"
+                  className="flex-shrink-0 ml-auto bg-slate-100 text-slate-800 border border-slate-300 px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1"
                 >
                   <span>📥</span><span>CSV</span>
                 </button>
@@ -1464,7 +1494,7 @@
                             {getDayScheduleDensity(selectedDate).text}
                           </span>
                         </div>
-                        <p className="text-xs text-rose-100 mt-1">{selectedDaySchedules.length} Sesi Terjadwal • {selectedDaySchedules.filter(s=>s.status==='LIVE').length * 2} Jam Siaran</p>
+                        <p className="text-xs text-rose-100 mt-1">{selectedDaySchedules.length} Sesi Terjadwal • {selectedDaySchedules.filter(s=>s.status!=='Tidur').length} Aktivitas Produktif</p>
                       </div>
 
                       <div className="flex items-center gap-2 pt-2 border-t border-white/20">
@@ -1475,11 +1505,11 @@
                       </div>
                     </div>
 
-                    {/* AVAILABLE SCHEDULE CARD */}
+                    {/* AVAILABLE SCHEDULE CARD (24 JAM) */}
                     <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-3.5 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black text-emerald-900 flex items-center gap-1.5">
-                          <span>🟢</span><span>Available Schedule (Slot Jam Kosong)</span>
+                          <span>🟢</span><span>Available Schedule (24 Jam)</span>
                         </span>
                         <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
                           {availableSlotsForSelectedDate.length} Slot Siap Pakai
@@ -1816,11 +1846,11 @@
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] text-slate-500 font-bold mb-0.5">Cek Jam Mulai:</label>
+                          <label className="block text-[10px] text-slate-500 font-bold mb-0.5">Cek Jam Mulai (24H):</label>
                           <select
                             value={filterHour}
                             onChange={e => setFilterHour(e.target.value)}
-                            className="w-full bg-white border border-slate-200 rounded-xl px-2 py-1.5 font-medium"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-2 py-1.5 font-medium font-mono"
                           >
                             <option value="ALL">Semua Jam</option>
                             {Array.from({ length: 24 }).map((_, h) => (
@@ -1951,7 +1981,7 @@
             </div>
           )}
 
-          {/* MODAL FORM INPUT/EDIT JADWAL */}
+          {/* MODAL FORM INPUT JADWAL */}
           {modalOpen && (
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
               <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
@@ -2021,28 +2051,37 @@
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 font-bold"
                     />
                   </div>
+                  
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">Mulai *</label>
-                      <input
-                        type="time"
+                      <label className="block font-bold text-slate-700 mb-1">Jam Mulai (00:00 - 24:00) *</label>
+                      <select
                         required
                         value={formData.start_time}
                         onChange={e => setFormData({ ...formData, start_time: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 font-bold"
-                      />
+                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 font-bold font-mono text-slate-900"
+                      >
+                        {TIME_OPTIONS_24H.map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">Selesai *</label>
-                      <input
-                        type="time"
+                      <label className="block font-bold text-slate-700 mb-1">Jam Selesai (00:00 - 24:00) *</label>
+                      <select
                         required
                         value={formData.end_time}
                         onChange={e => setFormData({ ...formData, end_time: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 font-bold"
-                      />
+                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 font-bold font-mono text-slate-900"
+                      >
+                        {TIME_OPTIONS_24H.map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                        <option value="24:00">24:00</option>
+                      </select>
                     </div>
                   </div>
+
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">Catatan / Target GMV</label>
                     <textarea
