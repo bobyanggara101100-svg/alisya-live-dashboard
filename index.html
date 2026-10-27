@@ -92,18 +92,11 @@
       { id: 's1', date: '2026-10-26', start_time: '14:00', end_time: '18:00', title: 'Shift 3 Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Target GMV 20 Juta' },
       { id: 's2', date: '2026-10-26', start_time: '10:00', end_time: '12:00', title: 'Meet Aya', brand_id: 'b_pribadi', status: 'Meeting', color: '#00FFFF', notes: 'Briefing Outfit' },
       { id: 's_sleep1', date: '2026-10-26', start_time: '23:00', end_time: '06:00', title: 'Istirahat Tidur Malam', brand_id: 'b_sleep', status: 'Tidur', color: '#6366F1', notes: 'Sleep hygiene 7 jam' },
-      { id: 's3', date: '2026-10-27', start_time: '10:00', end_time: '14:00', title: 'Shift 2 Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Sesi Siang' },
-      { id: 's_konten1', date: '2026-10-27', start_time: '15:00', end_time: '17:00', title: 'Take Video Review Skincare', brand_id: 'b_konten', status: 'Konten', color: '#8B5CF6', notes: 'Shopee & TikTok Affiliate Reels' },
-      { id: 's_salon1', date: '2026-10-27', start_time: '17:30', end_time: '19:00', title: 'Perawatan Rambut & Nyalon', brand_id: 'b_lainlain', status: 'Me Time', color: '#EC4899', notes: 'Me Time & Relaxation' },
+      { id: 's3', date: '2026-10-27', start_time: '12:00', end_time: '19:00', title: 'Shift Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Sesi Siang-Sore' },
+      { id: 's_sleep2', date: '2026-10-27', start_time: '00:00', end_time: '08:00', title: 'Turu Malam', brand_id: 'b_sleep', status: 'Tidur', color: '#6366F1', notes: 'Istirahat' },
+      { id: 's_salon1', date: '2026-10-27', start_time: '20:00', end_time: '22:00', title: 'Me Time & Perawatan', brand_id: 'b_lainlain', status: 'Me Time', color: '#EC4899', notes: 'Me Time & Relaxation' },
       { id: 's4', date: '2026-10-28', start_time: '10:00', end_time: '14:00', title: 'Shift 2 Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Sesi Siang' },
-      { id: 's_doc1', date: '2026-10-28', start_time: '15:30', end_time: '17:00', title: 'Kontrol Gigi / Dokter', brand_id: 'b_lainlain', status: 'Me Time', color: '#EC4899', notes: 'Check up berkala' },
-      { id: 's5', date: '2026-10-29', start_time: '00:00', end_time: '23:59', title: 'Mom Uung OFF', brand_id: 'b_momuung', status: 'OFF', color: '#EF4444', notes: 'Rest Day' },
-      { id: 's6', date: '2026-10-29', start_time: '08:00', end_time: '12:00', title: 'Aquapress Pagi', brand_id: 'b_aquapress', status: 'LIVE', color: '#00FFFF', notes: 'Shift Pagi' },
-      { id: 's7', date: '2026-10-29', start_time: '12:00', end_time: '16:00', title: 'Aquapress Siang', brand_id: 'b_aquapress', status: 'LIVE', color: '#00FFFF', notes: 'Shift Siang' },
-      { id: 's8', date: '2026-10-30', start_time: '06:00', end_time: '10:00', title: 'Shift 1 Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Shift Pagi' },
-      { id: 's9', date: '2026-10-30', start_time: '16:00', end_time: '20:00', title: 'Aquapress Sore', brand_id: 'b_aquapress', status: 'LIVE', color: '#00FFFF', notes: 'Shift Sore' },
-      { id: 's10', date: '2026-10-31', start_time: '06:00', end_time: '10:00', title: 'Shift 1 Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Weekend Promo' },
-      { id: 's11', date: '2026-11-01', start_time: '18:00', end_time: '22:00', title: 'Shift 4 Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Peak Hour' }
+      { id: 's5', date: '2026-10-29', start_time: '00:00', end_time: '23:59', title: 'Mom Uung OFF', brand_id: 'b_momuung', status: 'OFF', color: '#EF4444', notes: 'Rest Day' }
     ];
 
     const TIME_SLOTS = [
@@ -125,6 +118,20 @@
       if (!dateString) return '-';
       const [y, m, d] = dateString.split('-').map(Number);
       return new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(new Date(y, m - 1, d));
+    };
+
+    // Fungsi Logika Hitung Durasi Akurat (Maks 24 Jam)
+    const calculateDurationHours = (start, end) => {
+      if (!start || !end || (start === '00:00' && end === '23:59')) return 0;
+      const [sh, sm] = start.split(':').map(Number);
+      const [eh, em] = end.split(':').map(Number);
+      let diff = (eh * 60 + em) - (sh * 60 + sm);
+      if (diff <= 0) {
+        // Jika jam selesai lebih kecil dari mulai, anggap durasi terpotong atau rentang normal (hindari 21 jam)
+        diff = Math.max(0, (24 * 60 - (sh * 60 + sm)) + (eh * 60 + em));
+        if (diff > 1440) diff = 120; // fallback aman 2 jam
+      }
+      return Math.round((diff / 60) * 10) / 10;
     };
 
     function App() {
@@ -150,6 +157,7 @@
       const [activeTab, setActiveTab] = useState('agenda');
       const [pcSubTab, setPcSubTab] = useState('agenda');
 
+      // Shared State (Satu sumber data untuk Agenda & Spreadsheet)
       const [schedules, setSchedules] = useState(INITIAL_SCHEDULES);
       const [brands, setBrands] = useState(REQUIRED_CATEGORIES);
 
@@ -159,19 +167,22 @@
       const [enteredPin, setEnteredPin] = useState('');
       const [pinError, setPinError] = useState(false);
 
-      const [selectedDate, setSelectedDate] = useState(realTodayStr);
+      const [selectedDate, setSelectedDate] = useState('2026-10-27');
 
-      const [statPeriod, setStatPeriod] = useState('monthly');
-      const [customStatDate, setCustomStatDate] = useState(realTodayStr);
-      const [customStatMonth, setCustomStatMonth] = useState(() => new Date().getMonth());
-      const [customStatYear, setCustomStatYear] = useState(() => new Date().getFullYear());
+      // Filter Periode Statistik
+      const [statPeriod, setStatPeriod] = useState('daily');
+      const [customStatDate, setCustomStatDate] = useState('2026-10-27');
+      const [customStatMonth, setCustomStatMonth] = useState(9); // Oktober
+      const [customStatYear, setCustomStatYear] = useState(2026);
 
+      // Filter Pencarian
       const [searchQuery, setSearchQuery] = useState('');
       const [filterBrand, setFilterBrand] = useState('ALL');
       const [filterStatus, setFilterStatus] = useState('ALL');
       const [filterDate, setFilterDate] = useState('');
       const [filterHour, setFilterHour] = useState('ALL');
 
+      // 🌟 FIREBASE AUTO-SYNC REALTIME
       useEffect(() => {
         if (!firebaseDb) return;
         const refSch = firebaseDb.ref('alisya_schedules');
@@ -193,18 +204,14 @@
               }
               return b;
             });
-
             REQUIRED_CATEGORIES.forEach(req => {
               if (!merged.some(b => b.id === req.id)) {
                 merged.push(req);
                 needsUpdate = true;
               }
             });
-
             setBrands(merged);
-            if (needsUpdate) {
-              refBrands.set(merged);
-            }
+            if (needsUpdate) refBrands.set(merged);
           } else {
             refBrands.set(REQUIRED_CATEGORIES);
             setBrands(REQUIRED_CATEGORIES);
@@ -224,14 +231,14 @@
         if (firebaseDb) firebaseDb.ref('alisya_brands').set(newBrands);
       };
 
-      const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
-      const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
+      const [currentYear, setCurrentYear] = useState(2026);
+      const [currentMonth, setCurrentMonth] = useState(9); // Oktober 2026
 
       const [modalOpen, setModalOpen] = useState(false);
       const [selectedSchedule, setSelectedSchedule] = useState(null);
       const [formData, setFormData] = useState({
         id: '',
-        date: realTodayStr,
+        date: '2026-10-27',
         start_time: '10:00',
         end_time: '12:00',
         title: '',
@@ -291,37 +298,15 @@
         notify('📋 Jadwal berhasil disalin!');
       };
 
-      const checkConflict = (date, start, end, excludeId) => {
-        const toMin = t => {
-          const [h, m] = t.split(':').map(Number);
-          return h * 60 + m;
-        };
-        const sMin = toMin(start);
-        const eMin = toMin(end);
-        return schedules.find(s => {
-          if (s.id === excludeId || s.date !== date) return false;
-          if (s.start_time === '00:00' && s.end_time === '23:59') return false;
-          const exS = toMin(s.start_time);
-          const exE = toMin(s.end_time);
-          return Math.max(sMin, exS) < Math.min(eMin, exE);
-        });
-      };
-
+      // Simpan (Update / Create) - Tersinkron ke Agenda dan Spreadsheet
       const handleSave = (e) => {
         e.preventDefault();
-        const conflict = checkConflict(formData.date, formData.start_time, formData.end_time, selectedSchedule?.id);
-        if (conflict) {
-          if (!confirm(`⚠️ PERINGATAN BENTROK!\nAlisya sudah memiliki jadwal "${conflict.title}" (${conflict.start_time}-${conflict.end_time}) pada tanggal ini.\n\nTetap simpan?`)) {
-            return;
-          }
-        }
-
         const brandObj = brands.find(b => b.id === formData.brand_id);
         const payload = { ...formData, color: brandObj?.color || formData.color };
 
         if (selectedSchedule) {
           saveSchedulesToCloud(schedules.map(s => s.id === selectedSchedule.id ? payload : s));
-          notify('✨ Jadwal berhasil diperbarui!');
+          notify('✨ Jadwal berhasil diperbarui di Agenda & Spreadsheet!');
         } else {
           saveSchedulesToCloud([...schedules, payload]);
           notify('🚀 Jadwal baru berhasil disimpan!');
@@ -329,11 +314,13 @@
         setModalOpen(false);
       };
 
+      // Hapus - Otomatis terhapus di Agenda, Spreadsheet & Statistik
       const handleDelete = (id) => {
-        if (confirm('Hapus jadwal ini dari sistem?')) {
-          saveSchedulesToCloud(schedules.filter(s => s.id !== id));
+        if (confirm('Hapus jadwal ini? Jadwal akan otomatis terhapus dari Agenda Harian, Spreadsheet, dan Statistik.')) {
+          const updated = schedules.filter(s => s.id !== id);
+          saveSchedulesToCloud(updated);
           setModalOpen(false);
-          notify('🗑️ Jadwal telah dihapus.');
+          notify('🗑️ Jadwal telah dihapus secara realtime.');
         }
       };
 
@@ -390,7 +377,7 @@
 
         let text = `📊 *REKAP JADWAL ALISYA*\n`;
         text += `🗓️ Bulan: *${monthName} ${currentYear}*\n`;
-        text += `⏱️ Total Live: *${stats.totalLive} Shift* (~${stats.totalLiveHours} Jam)\n`;
+        text += `⏱️ Total Live: *${stats.totalLive} Shift*\n`;
         text += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
         if (monthItems.length === 0) {
@@ -418,12 +405,14 @@
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
       };
 
+      // Jadwal hari terpilih untuk tab Agenda
       const selectedDaySchedules = useMemo(() => {
         return schedules
           .filter(s => s.date === selectedDate)
           .sort((a, b) => a.start_time.localeCompare(b.start_time));
       }, [schedules, selectedDate]);
 
+      // Slot kosong yang tersedia di hari terpilih
       const availableSlotsForSelectedDate = useMemo(() => {
         return TIME_SLOTS.filter(slot => {
           const isBusy = selectedDaySchedules.some(s => {
@@ -440,11 +429,12 @@
         const hasOff = dayShifts.some(s => s.status === 'OFF');
         if (hasOff) return { text: '☕ LIBUR / OFF', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
         if (liveShifts.length >= 3) return { text: '🔥 FULL SCHEDULE', badge: 'bg-rose-500 text-white font-black' };
-        if (liveShifts.length === 2) return { text: '⚡ MEDIUM (4-6 Jam)', badge: 'bg-amber-100 text-amber-900 border-amber-300 font-bold' };
-        if (liveShifts.length === 1) return { text: '🟢 LOW (2-4 Jam)', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold' };
+        if (liveShifts.length === 2) return { text: '⚡ MEDIUM', badge: 'bg-amber-100 text-amber-900 border-amber-300 font-bold' };
+        if (liveShifts.length === 1) return { text: '🟢 LOW', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold' };
         return { text: '✨ FREE SLOT', badge: 'bg-slate-100 text-slate-600 border-slate-200' };
       };
 
+      // 🌟 PERHITUNGAN STATISTIK DENGAN VALIDASI AKURAT (MAKS 24 JAM PER HARI)
       const filteredByStatPeriod = useMemo(() => {
         return schedules.filter(s => {
           const [sY, sM, sD] = s.date.split('-').map(Number);
@@ -478,14 +468,7 @@
         let totalLiveHours = 0, totalSleepHours = 0, totalKontenHours = 0;
 
         filteredByStatPeriod.forEach(s => {
-          let dur = 2;
-          if (s.start_time && s.end_time && s.start_time !== '00:00' && s.end_time !== '23:59') {
-            const [sh, sm] = s.start_time.split(':').map(Number);
-            const [eh, em] = s.end_time.split(':').map(Number);
-            let diff = (eh * 60 + em) - (sh * 60 + sm);
-            if (diff < 0) diff += 24 * 60;
-            dur = Math.round((diff / 60) * 10) / 10;
-          }
+          const dur = calculateDurationHours(s.start_time, s.end_time);
 
           if (s.status === 'LIVE') {
             totalLive++;
@@ -507,6 +490,15 @@
           }
         });
 
+        // Batasi jika periode harian agar tidak mustahil melebihi 24 jam sehari
+        if (statPeriod === 'daily') {
+          totalLiveHours = Math.min(24, Math.round(totalLiveHours * 10) / 10);
+          totalSleepHours = Math.min(24, Math.round(totalSleepHours * 10) / 10);
+        } else {
+          totalLiveHours = Math.round(totalLiveHours * 10) / 10;
+          totalSleepHours = Math.round(totalSleepHours * 10) / 10;
+        }
+
         const perBrand = brands.map(b => {
           const list = filteredByStatPeriod.filter(s => s.brand_id === b.id);
           const liveCount = list.filter(s => s.status === 'LIVE').length;
@@ -515,7 +507,7 @@
         });
 
         return { totalLive, totalOff, totalSick, totalMeeting, totalSleep, totalMeTime, totalKonten, totalLiveHours, totalSleepHours, totalKontenHours, perBrand };
-      }, [filteredByStatPeriod, brands]);
+      }, [filteredByStatPeriod, brands, statPeriod]);
 
       const periodLabel = useMemo(() => {
         if (statPeriod === 'daily') return `${getHariNama(customStatDate)}, ${customStatDate}`;
@@ -567,6 +559,7 @@
         setFilterHour('ALL');
       };
 
+      // Charts
       const donutCanvas = useRef(null);
       const barCanvas = useRef(null);
       const donutInst = useRef(null);
@@ -616,7 +609,7 @@
       };
 
       const renderStatDateSelector = () => (
-        <div className="flex flex-wrap items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+        <div className="flex flex-wrap items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200">
           <span className="text-[11px] font-bold text-slate-500 uppercase">Tentukan Pilihan:</span>
           {statPeriod === 'daily' && (
             <input
@@ -655,7 +648,7 @@
                 onChange={e => setCustomStatYear(Number(e.target.value))}
                 className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 shadow-xs"
               >
-                {[2025, 2026, 2027, 2028].map(yr => (
+                {[2024, 2025, 2026, 2027, 2028].map(yr => (
                   <option key={yr} value={yr}>{yr}</option>
                 ))}
               </select>
@@ -667,7 +660,7 @@
               onChange={e => setCustomStatYear(Number(e.target.value))}
               className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 shadow-xs"
             >
-              {[2025, 2026, 2027, 2028].map(yr => (
+              {[2024, 2025, 2026, 2027, 2028].map(yr => (
                 <option key={yr} value={yr}>Tahun {yr}</option>
               ))}
             </select>
@@ -683,7 +676,7 @@
             </div>
           )}
 
-          {/* HEADER UTAMA: Alisya Schedule */}
+          {/* HEADER UTAMA */}
           <header className="bg-maroon text-white px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3 shadow-lg sticky top-0 z-40">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center font-black text-rose-300 text-xl border border-white/20 shadow-inner">
@@ -693,7 +686,7 @@
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="font-extrabold text-base tracking-wide">Alisya Schedule</h1>
                   <span className="bg-white/15 text-rose-200 border border-white/25 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider">
-                    v2.6.0-PRO
+                    v2.7.0-PRO
                   </span>
                   {isAdmin ? (
                     <span className="bg-amber-400 text-amber-950 px-2 py-0.5 rounded-md text-[10px] font-black shadow">👑 ADMIN</span>
@@ -724,7 +717,7 @@
               </button>
             </div>
 
-            {/* 🌟 NAVIGASI BULAN & TAHUN DENGAN DROPDOWN SELECTOR LANGSUNG */}
+            {/* NAVIGASI BULAN & TAHUN DROPDOWN */}
             <div className="flex items-center gap-2">
               <div className="flex items-center bg-white/10 rounded-2xl p-1 text-xs font-bold border border-white/20 shadow-sm gap-1">
                 <button
@@ -735,7 +728,6 @@
                   ◀
                 </button>
 
-                {/* DROPDOWN PILIH BULAN */}
                 <select
                   value={currentMonth}
                   onChange={e => setCurrentMonth(Number(e.target.value))}
@@ -748,7 +740,6 @@
                   ))}
                 </select>
 
-                {/* DROPDOWN PILIH TAHUN */}
                 <select
                   value={currentYear}
                   onChange={e => setCurrentYear(Number(e.target.value))}
@@ -946,10 +937,11 @@
                         </div>
                       </div>
 
+                      {/* FEED KARTU JADWAL HARIAN */}
                       <div className="lg:col-span-7 space-y-4">
                         <div className="flex items-center justify-between bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm">
                           <span className="text-xs font-black uppercase text-slate-700 tracking-wider">
-                            Daftar Sesi: {selectedDaySchedules.length} Agenda
+                            Daftar Sesi ({selectedDate}): {selectedDaySchedules.length} Agenda
                           </span>
                         </div>
 
@@ -1011,7 +1003,7 @@
                   </div>
                 )}
 
-                {/* SPREADSHEET PC */}
+                {/* 🌟 SPREADSHEET PC: TAMPILAN BERSIH (TIDAK LAGI DUPLIKAT DI SETIAP SEL) */}
                 {pcSubTab === 'calendar' && (
                   <div className="space-y-4">
                     <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4 text-xs">
@@ -1083,9 +1075,10 @@
                                   </td>
 
                                   {TIME_SLOTS.map(slot => {
+                                    // 🌟 PERBAIKAN: Jadwal hanya tampil di slot jam mulai (tidak berulang di seluruh slot durasinya)
                                     const slotItems = schedules.filter(s => {
                                       if (s.date !== dateStr) return false;
-                                      return (s.start_time < slot.end && s.end_time > slot.start) || (s.start_time === '00:00' && s.end_time === '23:59');
+                                      return (s.start_time >= slot.start && s.start_time < slot.end) || (slot.start === '00:00' && s.start_time === '00:00');
                                     });
 
                                     return (
@@ -1656,7 +1649,11 @@
                                     </span>
                                   </td>
                                   {TIME_SLOTS.map(slot => {
-                                    const slotItems = schedules.filter(s => s.date === dateStr && ((s.start_time < slot.end && s.end_time > slot.start) || (s.start_time === '00:00' && s.end_time === '23:59')));
+                                    // Tampil rapi di slot jam mulai
+                                    const slotItems = schedules.filter(s => {
+                                      if (s.date !== dateStr) return false;
+                                      return (s.start_time >= slot.start && s.start_time < slot.end) || (slot.start === '00:00' && s.start_time === '00:00');
+                                    });
                                     return (
                                       <td key={slot.label} onClick={() => handleOpenCreate(dateStr, slot.start, slot.end)} className="border-r border-slate-200 p-0.5 align-top h-10 relative">
                                         {slotItems.map(item => (
@@ -1963,7 +1960,7 @@
                       required
                       value={formData.title}
                       onChange={e => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="Contoh: Shift 3 Mom Uung / Me Time / Take Konten"
+                      placeholder="Contoh: Shift Mom Uung / Me Time / Take Konten"
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 font-bold text-slate-900 focus:ring-2 focus:ring-maroon focus:outline-none"
                     />
                   </div>
