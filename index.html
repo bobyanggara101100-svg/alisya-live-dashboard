@@ -92,11 +92,9 @@
       { id: 's1', date: '2026-10-26', start_time: '14:00', end_time: '18:00', title: 'Shift 3 Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Target GMV 20 Juta' },
       { id: 's2', date: '2026-10-26', start_time: '10:00', end_time: '12:00', title: 'Meet Aya', brand_id: 'b_pribadi', status: 'Meeting', color: '#00FFFF', notes: 'Briefing Outfit' },
       { id: 's_sleep1', date: '2026-10-26', start_time: '23:00', end_time: '06:00', title: 'Istirahat Tidur Malam', brand_id: 'b_sleep', status: 'Tidur', color: '#6366F1', notes: 'Sleep hygiene 7 jam' },
-      { id: 's3', date: '2026-10-27', start_time: '12:00', end_time: '19:00', title: 'Shift Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Sesi Siang-Sore' },
+      { id: 's3', date: '2026-10-27', start_time: '12:00', end_time: '19:00', title: 'Live Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Sesi Siang-Sore' },
       { id: 's_sleep2', date: '2026-10-27', start_time: '00:00', end_time: '08:00', title: 'Turu Malam', brand_id: 'b_sleep', status: 'Tidur', color: '#6366F1', notes: 'Istirahat' },
-      { id: 's_salon1', date: '2026-10-27', start_time: '20:00', end_time: '22:00', title: 'Me Time & Perawatan', brand_id: 'b_lainlain', status: 'Me Time', color: '#EC4899', notes: 'Me Time & Relaxation' },
-      { id: 's4', date: '2026-10-28', start_time: '10:00', end_time: '14:00', title: 'Shift 2 Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Sesi Siang' },
-      { id: 's5', date: '2026-10-29', start_time: '00:00', end_time: '23:59', title: 'Mom Uung OFF', brand_id: 'b_momuung', status: 'OFF', color: '#EF4444', notes: 'Rest Day' }
+      { id: 's_salon1', date: '2026-10-27', start_time: '20:00', end_time: '22:00', title: 'Me Time', brand_id: 'b_lainlain', status: 'Me Time', color: '#EC4899', notes: 'Relax' }
     ];
 
     const TIME_SLOTS = [
@@ -120,16 +118,14 @@
       return new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(new Date(y, m - 1, d));
     };
 
-    // Fungsi Logika Hitung Durasi Akurat (Maks 24 Jam)
     const calculateDurationHours = (start, end) => {
       if (!start || !end || (start === '00:00' && end === '23:59')) return 0;
       const [sh, sm] = start.split(':').map(Number);
       const [eh, em] = end.split(':').map(Number);
       let diff = (eh * 60 + em) - (sh * 60 + sm);
       if (diff <= 0) {
-        // Jika jam selesai lebih kecil dari mulai, anggap durasi terpotong atau rentang normal (hindari 21 jam)
         diff = Math.max(0, (24 * 60 - (sh * 60 + sm)) + (eh * 60 + em));
-        if (diff > 1440) diff = 120; // fallback aman 2 jam
+        if (diff > 1440) diff = 120;
       }
       return Math.round((diff / 60) * 10) / 10;
     };
@@ -157,7 +153,6 @@
       const [activeTab, setActiveTab] = useState('agenda');
       const [pcSubTab, setPcSubTab] = useState('agenda');
 
-      // Shared State (Satu sumber data untuk Agenda & Spreadsheet)
       const [schedules, setSchedules] = useState(INITIAL_SCHEDULES);
       const [brands, setBrands] = useState(REQUIRED_CATEGORIES);
 
@@ -169,20 +164,18 @@
 
       const [selectedDate, setSelectedDate] = useState('2026-10-27');
 
-      // Filter Periode Statistik
       const [statPeriod, setStatPeriod] = useState('daily');
       const [customStatDate, setCustomStatDate] = useState('2026-10-27');
       const [customStatMonth, setCustomStatMonth] = useState(9); // Oktober
       const [customStatYear, setCustomStatYear] = useState(2026);
 
-      // Filter Pencarian
       const [searchQuery, setSearchQuery] = useState('');
       const [filterBrand, setFilterBrand] = useState('ALL');
       const [filterStatus, setFilterStatus] = useState('ALL');
       const [filterDate, setFilterDate] = useState('');
       const [filterHour, setFilterHour] = useState('ALL');
 
-      // 🌟 FIREBASE AUTO-SYNC REALTIME
+      // Firebase Sync
       useEffect(() => {
         if (!firebaseDb) return;
         const refSch = firebaseDb.ref('alisya_schedules');
@@ -298,7 +291,6 @@
         notify('📋 Jadwal berhasil disalin!');
       };
 
-      // Simpan (Update / Create) - Tersinkron ke Agenda dan Spreadsheet
       const handleSave = (e) => {
         e.preventDefault();
         const brandObj = brands.find(b => b.id === formData.brand_id);
@@ -314,7 +306,6 @@
         setModalOpen(false);
       };
 
-      // Hapus - Otomatis terhapus di Agenda, Spreadsheet & Statistik
       const handleDelete = (id) => {
         if (confirm('Hapus jadwal ini? Jadwal akan otomatis terhapus dari Agenda Harian, Spreadsheet, dan Statistik.')) {
           const updated = schedules.filter(s => s.id !== id);
@@ -405,14 +396,12 @@
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
       };
 
-      // Jadwal hari terpilih untuk tab Agenda
       const selectedDaySchedules = useMemo(() => {
         return schedules
           .filter(s => s.date === selectedDate)
           .sort((a, b) => a.start_time.localeCompare(b.start_time));
       }, [schedules, selectedDate]);
 
-      // Slot kosong yang tersedia di hari terpilih
       const availableSlotsForSelectedDate = useMemo(() => {
         return TIME_SLOTS.filter(slot => {
           const isBusy = selectedDaySchedules.some(s => {
@@ -434,7 +423,6 @@
         return { text: '✨ FREE SLOT', badge: 'bg-slate-100 text-slate-600 border-slate-200' };
       };
 
-      // 🌟 PERHITUNGAN STATISTIK DENGAN VALIDASI AKURAT (MAKS 24 JAM PER HARI)
       const filteredByStatPeriod = useMemo(() => {
         return schedules.filter(s => {
           const [sY, sM, sD] = s.date.split('-').map(Number);
@@ -490,7 +478,6 @@
           }
         });
 
-        // Batasi jika periode harian agar tidak mustahil melebihi 24 jam sehari
         if (statPeriod === 'daily') {
           totalLiveHours = Math.min(24, Math.round(totalLiveHours * 10) / 10);
           totalSleepHours = Math.min(24, Math.round(totalSleepHours * 10) / 10);
@@ -559,7 +546,6 @@
         setFilterHour('ALL');
       };
 
-      // Charts
       const donutCanvas = useRef(null);
       const barCanvas = useRef(null);
       const donutInst = useRef(null);
@@ -1003,7 +989,7 @@
                   </div>
                 )}
 
-                {/* 🌟 SPREADSHEET PC: TAMPILAN BERSIH (TIDAK LAGI DUPLIKAT DI SETIAP SEL) */}
+                {/* 🌟 SPREADSHEET PC: WARNA PENUH DI SETIAP JAM YANG DILEWATI (BLOCK CONTINUOUS FILL) */}
                 {pcSubTab === 'calendar' && (
                   <div className="space-y-4">
                     <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4 text-xs">
@@ -1075,10 +1061,11 @@
                                   </td>
 
                                   {TIME_SLOTS.map(slot => {
-                                    // 🌟 PERBAIKAN: Jadwal hanya tampil di slot jam mulai (tidak berulang di seluruh slot durasinya)
+                                    // 🌟 DIWARNAI PENUH: Seluruh sel jam yang beririsan dengan rentang jadwal otomatis terisi warna!
                                     const slotItems = schedules.filter(s => {
                                       if (s.date !== dateStr) return false;
-                                      return (s.start_time >= slot.start && s.start_time < slot.end) || (slot.start === '00:00' && s.start_time === '00:00');
+                                      if (s.start_time === '00:00' && s.end_time === '23:59') return true;
+                                      return (s.start_time < slot.end && s.end_time > slot.start);
                                     });
 
                                     return (
@@ -1087,18 +1074,29 @@
                                         onClick={() => handleOpenCreate(dateStr, slot.start, slot.end)}
                                         className={`border-r border-slate-200 p-1 align-top h-14 relative transition ${isAdmin ? 'hover:bg-rose-50/50 cursor-pointer' : ''}`}
                                       >
-                                        {slotItems.map(item => (
-                                          <div
-                                            key={item.id}
-                                            onClick={(e) => { e.stopPropagation(); handleOpenEdit(item); }}
-                                            className="p-1.5 rounded-xl font-bold text-[10px] text-slate-900 shadow-sm border border-black/10 transition cursor-pointer mb-1 leading-tight hover:scale-[1.02]"
-                                            style={{ backgroundColor: item.color }}
-                                            title={`${item.title} (${item.start_time}-${item.end_time})`}
-                                          >
-                                            <div className="truncate font-black">{item.title}</div>
-                                            <div className="text-[9px] font-mono text-slate-700">{item.start_time}-{item.end_time}</div>
-                                          </div>
-                                        ))}
+                                        {slotItems.map(item => {
+                                          const isStartSlot = (item.start_time >= slot.start && item.start_time < slot.end) || (slot.start === '00:00' && item.start_time === '00:00');
+                                          return (
+                                            <div
+                                              key={item.id}
+                                              onClick={(e) => { e.stopPropagation(); handleOpenEdit(item); }}
+                                              className={`p-1.5 rounded-xl font-bold text-[10px] text-slate-900 shadow-sm border border-black/10 transition cursor-pointer mb-1 leading-tight hover:scale-[1.02] ${!isStartSlot ? 'opacity-85' : ''}`}
+                                              style={{ backgroundColor: item.color }}
+                                              title={`${item.title} (${item.start_time}-${item.end_time})`}
+                                            >
+                                              {isStartSlot ? (
+                                                <React.Fragment>
+                                                  <div className="truncate font-black">{item.title}</div>
+                                                  <div className="text-[9px] font-mono text-slate-700">{item.start_time}-{item.end_time}</div>
+                                                </React.Fragment>
+                                              ) : (
+                                                <div className="truncate text-[9px] font-bold opacity-75">
+                                                  • {item.title}
+                                                </div>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
                                       </td>
                                     );
                                   })}
@@ -1598,7 +1596,7 @@
                   </div>
                 )}
 
-                {/* SPREADSHEET MODE HP */}
+                {/* SPREADSHEET MODE HP (WARNA PENUH TIAP JAM) */}
                 {activeTab === 'calendar' && (
                   <div className="space-y-3">
                     <button
@@ -1649,18 +1647,27 @@
                                     </span>
                                   </td>
                                   {TIME_SLOTS.map(slot => {
-                                    // Tampil rapi di slot jam mulai
                                     const slotItems = schedules.filter(s => {
                                       if (s.date !== dateStr) return false;
-                                      return (s.start_time >= slot.start && s.start_time < slot.end) || (slot.start === '00:00' && s.start_time === '00:00');
+                                      if (s.start_time === '00:00' && s.end_time === '23:59') return true;
+                                      return (s.start_time < slot.end && s.end_time > slot.start);
                                     });
+
                                     return (
                                       <td key={slot.label} onClick={() => handleOpenCreate(dateStr, slot.start, slot.end)} className="border-r border-slate-200 p-0.5 align-top h-10 relative">
-                                        {slotItems.map(item => (
-                                          <div key={item.id} onClick={(e) => { e.stopPropagation(); handleOpenEdit(item); }} className="p-0.5 rounded font-bold text-[8px] text-slate-900 truncate mb-0.5 shadow-sm" style={{ backgroundColor: item.color }}>
-                                            {item.title}
-                                          </div>
-                                        ))}
+                                        {slotItems.map(item => {
+                                          const isStartSlot = (item.start_time >= slot.start && item.start_time < slot.end) || (slot.start === '00:00' && item.start_time === '00:00');
+                                          return (
+                                            <div
+                                              key={item.id}
+                                              onClick={(e) => { e.stopPropagation(); handleOpenEdit(item); }}
+                                              className={`p-0.5 rounded font-bold text-[8px] text-slate-900 truncate mb-0.5 shadow-sm ${!isStartSlot ? 'opacity-85' : ''}`}
+                                              style={{ backgroundColor: item.color }}
+                                            >
+                                              {isStartSlot ? item.title : `• ${item.title}`}
+                                            </div>
+                                          );
+                                        })}
                                       </td>
                                     );
                                   })}
