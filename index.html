@@ -78,8 +78,8 @@
       console.error("Firebase init error:", err);
     }
 
-    // Kategori Lengkap: Brand, Jam Tidur, Take Konten Affiliate, Lain-Lain & Agenda Pribadi
-    const DEFAULT_BRANDS_INIT = [
+    // 🌟 KATEGORI LENGKAP DEFAULT (TERMASUK TAKE KONTEN VIDEO AFFILIATE)
+    const REQUIRED_CATEGORIES = [
       { id: 'b_momuung', name: 'Mom Uung', emoji: '🍼', color: '#B6D7A8' },
       { id: 'b_aquapress', name: 'AquaPress', emoji: '💧', color: '#00FFFF' },
       { id: 'b_moell', name: 'Moell / Back Up', emoji: '✨', color: '#FACC15' },
@@ -152,7 +152,7 @@
       const [pcSubTab, setPcSubTab] = useState('agenda');
 
       const [schedules, setSchedules] = useState(INITIAL_SCHEDULES);
-      const [brands, setBrands] = useState(DEFAULT_BRANDS_INIT);
+      const [brands, setBrands] = useState(REQUIRED_CATEGORIES);
 
       const [isAdmin, setIsAdmin] = useState(false);
       const adminPin = "101100";
@@ -175,6 +175,7 @@
       const [filterDate, setFilterDate] = useState('');
       const [filterHour, setFilterHour] = useState('ALL');
 
+      // 🌟 FIREBASE REALTIME SYNC DENGAN FITUR AUTO-MERGE KATEGORI BARU
       useEffect(() => {
         if (!firebaseDb) return;
         const refSch = firebaseDb.ref('alisya_schedules');
@@ -187,8 +188,24 @@
         const refBrands = firebaseDb.ref('alisya_brands');
         refBrands.on('value', snap => {
           const val = snap.val();
-          if (val && Array.isArray(val)) setBrands(val);
-          else refBrands.set(DEFAULT_BRANDS_INIT);
+          if (val && Array.isArray(val)) {
+            // Auto-Merge: Pastikan b_konten, b_sleep, b_lainlain otomatis masuk jika belum ada di database lama
+            let merged = [...val];
+            let needsUpdate = false;
+            REQUIRED_CATEGORIES.forEach(req => {
+              if (!merged.some(b => b.id === req.id)) {
+                merged.push(req);
+                needsUpdate = true;
+              }
+            });
+            setBrands(merged);
+            if (needsUpdate) {
+              refBrands.set(merged);
+            }
+          } else {
+            refBrands.set(REQUIRED_CATEGORIES);
+            setBrands(REQUIRED_CATEGORIES);
+          }
         });
 
         return () => { refSch.off(); refBrands.off(); };
@@ -425,7 +442,6 @@
         return { text: '✨ FREE SLOT', badge: 'bg-slate-100 text-slate-600 border-slate-200' };
       };
 
-      // Perhitungan Statistik Berdasarkan Periode
       const filteredByStatPeriod = useMemo(() => {
         return schedules.filter(s => {
           const [sY, sM, sD] = s.date.split('-').map(Number);
@@ -665,7 +681,7 @@
             </div>
           )}
 
-          {/* 🌟 HEADER UTAMA: JUDUL BERUBAH MENJADI "Alisya Schedule" */}
+          {/* HEADER UTAMA */}
           <header className="bg-maroon text-white px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3 shadow-lg sticky top-0 z-40">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center font-black text-rose-300 text-xl border border-white/20 shadow-inner">
@@ -1305,12 +1321,12 @@
                   </div>
                 )}
 
-                {/* WARNA BRAND PC */}
+                {/* 🎨 WARNA BRAND & KATEGORI PC (LENGKAP TERMASUK TAKE KONTEN VIDEO) */}
                 {pcSubTab === 'colors' && (
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4 max-w-2xl mx-auto">
                     <div>
                       <h3 className="font-black text-slate-800 text-base">🎨 Pengaturan Warna Dinamis</h3>
-                      <p className="text-xs text-slate-500 mt-1">Ubah warna visual brand, jam tidur, take konten video, dan agenda lain-lain dengan Color Picker.</p>
+                      <p className="text-xs text-slate-500 mt-1">Ubah warna visual brand, take konten video affiliate, jam tidur, dan agenda lain-lain dengan Color Picker.</p>
                     </div>
 
                     <div className="space-y-3">
@@ -1891,7 +1907,7 @@
             </div>
           )}
 
-          {/* MODAL FORM INPUT/EDIT JADWAL */}
+          {/* 🌟 MODAL FORM INPUT/EDIT JADWAL: DROPDOWN KATEGORI/BRAND LANGSUNG LENGKAP */}
           {modalOpen && (
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
               <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
@@ -1907,19 +1923,32 @@
                       required
                       value={formData.title}
                       onChange={e => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="Contoh: Shift 3 Mom Uung / Take Video Skincare"
+                      placeholder="Contoh: Shift 3 Mom Uung / Take Konten Skincare"
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 font-bold text-slate-900 focus:ring-2 focus:ring-maroon focus:outline-none"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
+                    {/* DROPDOWN KATEGORI/BRAND DENGAN TAKE KONTEN VIDEO AFFILIATE */}
                     <div>
                       <label className="block font-bold text-slate-700 mb-1">Kategori / Brand *</label>
                       <select
                         value={formData.brand_id}
-                        onChange={e => setFormData({ ...formData, brand_id: e.target.value })}
+                        onChange={e => {
+                          const newBrandId = e.target.value;
+                          let newStatus = formData.status;
+                          if (newBrandId === 'b_konten') newStatus = 'Konten';
+                          else if (newBrandId === 'b_sleep') newStatus = 'Tidur';
+                          else if (newBrandId === 'b_lainlain') newStatus = 'Lain-Lain';
+                          else if (newBrandId === 'b_pribadi') newStatus = 'OFF';
+                          setFormData({ ...formData, brand_id: newBrandId, status: newStatus });
+                        }}
                         className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 font-bold"
                       >
-                        {brands.map(b => <option key={b.id} value={b.id}>{b.emoji} {b.name}</option>)}
+                        {brands.map(b => (
+                          <option key={b.id} value={b.id}>
+                            {b.emoji} {b.name}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -1977,7 +2006,7 @@
                       rows="2"
                       value={formData.notes}
                       onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="Target GMV, konsep video, briefing pakaian, atau catatan sesi..."
+                      placeholder="Target GMV, konsep video affiliate, briefing pakaian, atau catatan sesi..."
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 font-medium"
                     ></textarea>
                   </div>
