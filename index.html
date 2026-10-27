@@ -159,14 +159,12 @@
 
       const [selectedDate, setSelectedDate] = useState(realTodayStr);
 
-      // 🔍 FILTER & PENCARIAN CERDAS (Kategori, Status, Tanggal, Jam)
       const [searchQuery, setSearchQuery] = useState('');
       const [filterBrand, setFilterBrand] = useState('ALL');
       const [filterStatus, setFilterStatus] = useState('ALL');
       const [filterDate, setFilterDate] = useState('');
       const [filterHour, setFilterHour] = useState('ALL');
 
-      // Firebase Sync
       useEffect(() => {
         if (!firebaseDb) return;
         const refSch = firebaseDb.ref('alisya_schedules');
@@ -219,7 +217,6 @@
       const daysInMonth = useMemo(() => new Date(currentYear, currentMonth + 1, 0).getDate(), [currentYear, currentMonth]);
       const monthName = useMemo(() => new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(new Date(currentYear, currentMonth, 1)), [currentYear, currentMonth]);
 
-      // Admin Login
       const handleVerifyPin = (e) => {
         e.preventDefault();
         if (enteredPin === adminPin) {
@@ -425,7 +422,6 @@
         return { text: '✨ FREE SLOT', badge: 'bg-slate-100 text-slate-600 border-slate-200' };
       };
 
-      // 🔍 FILTERED LIST MULTI-KRITERIA (Judul, Kategori, Status, Tanggal, Jam)
       const filteredSchedules = useMemo(() => {
         return schedules.filter(s => {
           if (filterBrand !== 'ALL' && s.brand_id !== filterBrand) return false;
@@ -449,7 +445,6 @@
         });
       }, [schedules, filterBrand, filterStatus, filterDate, filterHour, searchQuery, brands]);
 
-      // Reset Semua Filter
       const handleResetFilter = () => {
         setSearchQuery('');
         setFilterBrand('ALL');
@@ -536,15 +531,18 @@
             </div>
           )}
 
-          {/* HEADER UTAMA */}
+          {/* HEADER UTAMA DENGAN NAMA VERSI RESMI */}
           <header className="bg-maroon text-white px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3 shadow-lg sticky top-0 z-40">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center font-black text-rose-300 text-xl border border-white/20 shadow-inner">
                 ✨
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="font-extrabold text-base tracking-wide">Alisya Live</h1>
+                  <span className="bg-white/15 text-rose-200 border border-white/25 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider">
+                    v2.4.0-PRO
+                  </span>
                   {isAdmin ? (
                     <span className="bg-amber-400 text-amber-950 px-2 py-0.5 rounded-md text-[10px] font-black shadow">👑 ADMIN</span>
                   ) : (
@@ -801,7 +799,7 @@
                   </div>
                 )}
 
-                {/* DAFTAR SEMUA JADWAL PC (LENGKAP DENGAN PENCARIAN & FILTER MULTI-KRITERIA) */}
+                {/* DAFTAR SEMUA JADWAL PC */}
                 {pcSubTab === 'list' && (
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
                     <div className="flex justify-between items-center">
@@ -813,7 +811,7 @@
                       )}
                     </div>
 
-                    {/* 🔍 PANEL PENCARIAN & FILTER LENGKAP (MODE PC) */}
+                    {/* 🔍 PANEL PENCARIAN & FILTER LENGKAP PC */}
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs font-semibold">
                       <div className="md:col-span-1">
                         <label className="block text-slate-500 mb-1">Cari Kata Kunci:</label>
@@ -1286,7 +1284,7 @@
                   </div>
                 )}
 
-                {/* 📋 DAFTAR JADWAL HP (DILENGKAPI FILTER KATEGORI, STATUS, TANGGAL & JAM) */}
+                {/* DAFTAR HP */}
                 {activeTab === 'list' && (
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 space-y-3">
                     <div className="flex justify-between items-center">
@@ -1303,7 +1301,6 @@
                       </div>
                     </div>
 
-                    {/* 🔍 PANEL FILTER HP */}
                     <div className="space-y-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
                       <input
                         type="text"
