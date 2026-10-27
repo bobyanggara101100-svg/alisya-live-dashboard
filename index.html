@@ -51,11 +51,6 @@
     .sticky-col { position: sticky; left: 0; z-index: 20; }
     .sticky-header { position: sticky; top: 0; z-index: 30; }
     .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom, 16px) + 76px); }
-    @keyframes pulseGlow {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-      50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-    }
-    .today-highlight { animation: pulseGlow 2s infinite; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased font-sans select-none pb-safe md:pb-8">
@@ -83,7 +78,7 @@
       console.error("Firebase init error:", err);
     }
 
-    // Kategori Lengkap: Brand, Jam Tidur, Lain-Lain & Agenda Pribadi
+    // Kategori Lengkap: Brand, Jam Tidur, Lain-Lain & Agenda Pribadi (Bisa diatur warnanya)
     const DEFAULT_BRANDS_INIT = [
       { id: 'b_momuung', name: 'Mom Uung', emoji: '🍼', color: '#B6D7A8' },
       { id: 'b_aquapress', name: 'AquaPress', emoji: '💧', color: '#00FFFF' },
@@ -132,6 +127,16 @@
     };
 
     function App() {
+      // 🌟 DETEKSI HARI INI SECARA REAL-TIME DARI PERANGKAT
+      const realTodayStr = useMemo(() => {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }, []);
+
+      // 🌟 DUAL MODE SWITCHER: 'mobile' vs 'pc'
       const [displayMode, setDisplayMode] = useState(() => {
         const saved = localStorage.getItem('alisya_display_mode');
         if (saved) return saved;
@@ -146,6 +151,7 @@
       const [activeTab, setActiveTab] = useState('agenda');
       const [pcSubTab, setPcSubTab] = useState('calendar');
 
+      // Shared State (Tersinkronisasi ke Firebase)
       const [schedules, setSchedules] = useState(INITIAL_SCHEDULES);
       const [brands, setBrands] = useState(DEFAULT_BRANDS_INIT);
 
@@ -156,12 +162,12 @@
       const [enteredPin, setEnteredPin] = useState('');
       const [pinError, setPinError] = useState(false);
 
-      const [selectedDate, setSelectedDate] = useState('2026-10-27');
+      const [selectedDate, setSelectedDate] = useState(realTodayStr);
       const [searchQuery, setSearchQuery] = useState('');
       const [filterBrand, setFilterBrand] = useState('ALL');
       const [filterStatus, setFilterStatus] = useState('ALL');
 
-      // Firebase Sync
+      // Firebase Sync Listener (Otomatis menyelaraskan Mode HP dan PC)
       useEffect(() => {
         if (!firebaseDb) return;
         const refSch = firebaseDb.ref('alisya_schedules');
@@ -191,14 +197,14 @@
         if (firebaseDb) firebaseDb.ref('alisya_brands').set(newBrands);
       };
 
-      const [currentYear, setCurrentYear] = useState(2026);
-      const [currentMonth, setCurrentMonth] = useState(9); // Oktober 2026
+      const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
+      const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
 
       const [modalOpen, setModalOpen] = useState(false);
       const [selectedSchedule, setSelectedSchedule] = useState(null);
       const [formData, setFormData] = useState({
         id: '',
-        date: '2026-10-27',
+        date: realTodayStr,
         start_time: '10:00',
         end_time: '12:00',
         title: '',
@@ -350,7 +356,6 @@
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
       };
 
-      // Share Spreadsheet ke WA
       const shareSpreadsheetToWA = () => {
         const monthItems = schedules
           .filter(s => {
@@ -402,7 +407,7 @@
           .sort((a, b) => a.start_time.localeCompare(b.start_time));
       }, [schedules, selectedDate]);
 
-      // 🟢 2. AVAILABLE SCHEDULE FINDER (Mencari slot jam kosong di hari terpilih)
+      // 🟢 AVAILABLE SCHEDULE FINDER
       const availableSlotsForSelectedDate = useMemo(() => {
         return TIME_SLOTS.filter(slot => {
           const isBusy = selectedDaySchedules.some(s => {
@@ -413,7 +418,7 @@
         });
       }, [selectedDaySchedules]);
 
-      // 🔥 3. STATUS KEPADATAN JADWAL (FULL SCHEDULE INDICATOR PER HARI)
+      // 🔥 KETERANGAN FULL SCHEDULE / STATUS KEPADATAN PER HARI
       const getDayScheduleDensity = (dateStr) => {
         const dayShifts = schedules.filter(s => s.date === dateStr);
         const liveShifts = dayShifts.filter(s => s.status === 'LIVE');
@@ -581,7 +586,7 @@
           </header>
 
           {/* ========================================================= */}
-          {/* 🌟 1. TAMPILAN MODE PC / DESKTOP SPREADSHEET VERTICAL     */}
+          {/* 🌟 1. TAMPILAN MODE PC / DESKTOP                          */}
           {/* ========================================================= */}
           {displayMode === 'pc' && (
             <div className="flex-1 flex flex-col">
@@ -591,7 +596,7 @@
                     onClick={() => setPcSubTab('calendar')}
                     className={`px-4 py-2 rounded-xl transition flex items-center gap-2 ${pcSubTab === 'calendar' ? 'bg-maroon text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
                   >
-                    <span>📅</span><span>Kalender Spreadsheet (Header Jam)</span>
+                    <span>📅</span><span>Kalender Spreadsheet</span>
                   </button>
                   <button
                     onClick={() => setPcSubTab('dashboard')}
@@ -632,7 +637,7 @@
               </div>
 
               <div className="p-6 max-w-[1600px] w-full mx-auto space-y-6">
-                {/* 🔄 SPREADSHEET BARU: HEADER ATAS = JAM, KOLOM KIRI = TANGGAL & HARI */}
+                {/* 🔄 SPREADSHEET PC: ATAS = JAM, KIRI = TANGGAL & HARI DENGAN BADGE HARI INI */}
                 {pcSubTab === 'calendar' && (
                   <div className="space-y-4">
                     <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4 text-xs">
@@ -645,7 +650,7 @@
                           <span>Share Rekap Spreadsheet ke WA</span>
                         </button>
                         <span className="text-slate-500 font-medium">
-                          💡 <strong>Tata Letak Baru:</strong> Baris atas = Slot Jam (2 Jam). Baris ke bawah = Urutan Tanggal & Hari.
+                          💡 <strong>Tata Letak:</strong> Baris atas = Slot Waktu. Baris ke bawah = Urutan Tanggal & Hari.
                         </span>
                       </div>
 
@@ -664,7 +669,7 @@
                         <table className="w-full border-collapse text-xs select-none">
                           <thead>
                             <tr className="bg-maroon text-white sticky-header">
-                              <th className="sticky-col bg-maroon px-4 py-3 text-left font-black border-b border-r border-rose-900 min-w-[180px] shadow-sm">
+                              <th className="sticky-col bg-maroon px-4 py-3 text-left font-black border-b border-r border-rose-900 min-w-[200px] shadow-sm">
                                 TANGGAL & HARI \ JAM
                               </th>
                               <th className="bg-maroon px-2 py-3 text-center font-bold border-b border-r border-rose-900 min-w-[130px]">
@@ -683,17 +688,22 @@
                               const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                               const dayName = new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(new Date(currentYear, currentMonth, day));
                               const isWeekend = dayName === 'Sabtu' || dayName === 'Minggu';
-                              const isToday = day === 27 && currentMonth === 9;
+                              // Deteksi otomatis apakah baris ini adalah HARI INI
+                              const isToday = dateStr === realTodayStr;
                               const density = getDayScheduleDensity(dateStr);
 
                               return (
-                                <tr key={day} className={`border-b border-slate-200 hover:bg-slate-50/70 transition ${isToday ? 'bg-emerald-50/50' : ''}`}>
-                                  {/* KOLOM KIRI STICKY: TANGGAL & HARI */}
-                                  <td className={`sticky-col px-4 py-2.5 border-r border-slate-200 whitespace-nowrap shadow-sm ${isToday ? 'bg-emerald-100/90 text-emerald-950 font-black' : isWeekend ? 'bg-rose-50/80 text-rose-900 font-bold' : 'bg-slate-50 font-bold'}`}>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-base font-black">{day}</span>
-                                      <span className="text-xs uppercase">{dayName}</span>
-                                      {isToday && <span className="bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded">HARI INI</span>}
+                                <tr key={day} className={`border-b border-slate-200 hover:bg-slate-50/70 transition ${isToday ? 'bg-emerald-50/70' : ''}`}>
+                                  {/* KOLOM KIRI STICKY DENGAN INDIKATOR [HARI INI] */}
+                                  <td className={`sticky-col px-4 py-2.5 border-r border-slate-200 whitespace-nowrap shadow-sm ${isToday ? 'bg-[#d1fae5] text-slate-900 font-black' : isWeekend ? 'bg-rose-50/80 text-rose-900 font-bold' : 'bg-slate-50 font-bold'}`}>
+                                    <div className="flex items-center gap-2.5">
+                                      <span className="text-base font-black text-slate-900">{day}</span>
+                                      <span className="text-xs uppercase text-slate-800">{dayName}</span>
+                                      {isToday && (
+                                        <span className="bg-[#10b981] text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs tracking-wider">
+                                          HARI INI
+                                        </span>
+                                      )}
                                     </div>
                                   </td>
 
@@ -704,7 +714,7 @@
                                     </span>
                                   </td>
 
-                                  {/* SEL-SEL JAM (BARIS ATAS = JAM) */}
+                                  {/* SEL-SEL JAM */}
                                   {TIME_SLOTS.map(slot => {
                                     const slotItems = schedules.filter(s => {
                                       if (s.date !== dateStr) return false;
@@ -937,7 +947,7 @@
           )}
 
           {/* ========================================================= */}
-          {/* 🌟 2. TAMPILAN MODE HP / MOBILE (THUMB-FRIENDLY & BERSIH)  */}
+          {/* 🌟 2. TAMPILAN MODE HP / MOBILE                          */}
           {/* ========================================================= */}
           {displayMode === 'mobile' && (
             <div className="flex-1 flex flex-col">
@@ -952,7 +962,7 @@
                   onClick={() => setActiveTab('calendar')}
                   className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${activeTab === 'calendar' ? 'bg-maroon text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
                 >
-                  <span>📅</span><span>Spreadsheet Vertikal</span>
+                  <span>📅</span><span>Kalender Spreadsheet</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('kpi')}
@@ -1054,6 +1064,7 @@
                           const day = i + 1;
                           const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                           const isSelected = selectedDate === dateStr;
+                          const isToday = dateStr === realTodayStr;
                           const dayName = new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(new Date(currentYear, currentMonth, day));
                           const dayShifts = schedules.filter(s => s.date === dateStr);
                           const isWeekend = dayName === 'Sab' || dayName === 'Min';
@@ -1062,9 +1073,9 @@
                             <button
                               key={day}
                               onClick={() => setSelectedDate(dateStr)}
-                              className={`flex-shrink-0 w-12 py-2 rounded-2xl flex flex-col items-center justify-center transition active:scale-95 ${isSelected ? 'bg-maroon text-white shadow-md scale-105' : 'bg-slate-50 text-slate-700 border border-slate-200'}`}
+                              className={`flex-shrink-0 w-12 py-2 rounded-2xl flex flex-col items-center justify-center transition active:scale-95 ${isSelected ? 'bg-maroon text-white shadow-md scale-105' : isToday ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-black' : 'bg-slate-50 text-slate-700 border border-slate-200'}`}
                             >
-                              <span className={`text-[9px] font-bold ${isSelected ? 'text-rose-200' : isWeekend ? 'text-rose-600' : 'text-slate-400'}`}>{dayName}</span>
+                              <span className={`text-[9px] font-bold ${isSelected ? 'text-rose-200' : isToday ? 'text-emerald-700' : isWeekend ? 'text-rose-600' : 'text-slate-400'}`}>{dayName}</span>
                               <span className="text-sm font-black">{day}</span>
                               <div className="flex gap-0.5 mt-1 h-1">
                                 {dayShifts.slice(0, 3).map((s, idx) => (
@@ -1135,7 +1146,7 @@
                   </div>
                 )}
 
-                {/* SPREADSHEET 24 JAM HP (HEADER ATAS = JAM, KIRI = TANGGAL) */}
+                {/* SPREADSHEET MODE HP: DILENGKAPI [HARI INI] PERSIS SESUAI GAMBAR */}
                 {activeTab === 'calendar' && (
                   <div className="space-y-3">
                     <button
@@ -1150,10 +1161,10 @@
                         <table className="w-full border-collapse text-xs select-none">
                           <thead>
                             <tr className="bg-maroon text-white sticky-header">
-                              <th className="sticky-col bg-maroon px-3 py-2 text-left font-black border-b border-r border-rose-900 min-w-[130px]">TGL & HARI</th>
-                              <th className="bg-maroon px-2 py-2 text-center font-bold border-b border-r border-rose-900 min-w-[90px]">STATUS</th>
+                              <th className="sticky-col bg-maroon px-3 py-2.5 text-left font-black border-b border-r border-rose-900 min-w-[150px]">TGL & HARI</th>
+                              <th className="bg-maroon px-2 py-2.5 text-center font-bold border-b border-r border-rose-900 min-w-[90px]">STATUS</th>
                               {TIME_SLOTS.map(slot => (
-                                <th key={slot.label} className="px-2 py-2 text-center font-mono font-bold border-b border-r border-rose-900 min-w-[85px] text-[10px]">
+                                <th key={slot.label} className="px-2 py-2.5 text-center font-mono font-bold border-b border-r border-rose-900 min-w-[85px] text-[10px]">
                                   {slot.start}
                                 </th>
                               ))}
@@ -1163,13 +1174,23 @@
                             {Array.from({ length: daysInMonth }).map((_, i) => {
                               const day = i + 1;
                               const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                              const dayName = new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(new Date(currentYear, currentMonth, day));
+                              const dayName = new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(new Date(currentYear, currentMonth, day));
+                              const isToday = dateStr === realTodayStr;
                               const density = getDayScheduleDensity(dateStr);
 
                               return (
-                                <tr key={day} className="border-b border-slate-200">
-                                  <td className="sticky-col bg-slate-50 px-2 py-2 font-bold text-slate-700 border-r border-slate-200 text-[10px] whitespace-nowrap">
-                                    {day} {dayName}
+                                <tr key={day} className={`border-b border-slate-200 ${isToday ? 'bg-emerald-50/70' : ''}`}>
+                                  {/* KOLOM KIRI PERSIS SEPERTI GAMBAR USER */}
+                                  <td className={`sticky-col px-3 py-2 border-r border-slate-200 whitespace-nowrap shadow-sm ${isToday ? 'bg-[#d1fae5] text-slate-900 font-black' : 'bg-slate-50 font-bold'}`}>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-black text-slate-900">{day}</span>
+                                      <span className="text-[11px] uppercase text-slate-800">{dayName}</span>
+                                      {isToday && (
+                                        <span className="bg-[#10b981] text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-xs">
+                                          HARI INI
+                                        </span>
+                                      )}
+                                    </div>
                                   </td>
                                   <td className="border-r border-slate-200 p-1 text-center whitespace-nowrap">
                                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${density.badge}`}>
