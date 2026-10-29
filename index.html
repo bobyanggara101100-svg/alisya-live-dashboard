@@ -92,12 +92,11 @@
       { id: 's1', date: '2026-10-26', start_time: '14:00', end_time: '18:00', title: 'Shift 3 Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Target GMV 20 Juta' },
       { id: 's2', date: '2026-10-26', start_time: '10:00', end_time: '12:00', title: 'Meet Aya', brand_id: 'b_pribadi', status: 'Meeting', color: '#00FFFF', notes: 'Briefing Outfit' },
       { id: 's_sleep1', date: '2026-10-26', start_time: '23:00', end_time: '06:00', title: 'Istirahat Tidur Malam', brand_id: 'b_sleep', status: 'Tidur', color: '#6366F1', notes: 'Sleep hygiene 7 jam' },
-      { id: 's3', date: '2026-10-27', start_time: '11:00', end_time: '19:00', title: 'Live Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Sesi Siang-Sore' },
+      { id: 's3', date: '2026-10-27', start_time: '11:00', end_time: '19:00', title: 'Shift 2 Mom Uung', brand_id: 'b_momuung', status: 'LIVE', color: '#B6D7A8', notes: 'Sesi Siang-Sore' },
       { id: 's_konten_sample', date: '2026-10-27', start_time: '06:00', end_time: '08:00', title: 'Take Konten Video', brand_id: 'b_konten', status: 'Konten', color: '#8B5CF6', notes: 'Shopee & TikTok Affiliate' },
       { id: 's_salon1', date: '2026-10-27', start_time: '20:00', end_time: '22:00', title: 'Me Time', brand_id: 'b_lainlain', status: 'Me Time', color: '#EC4899', notes: 'Relax' }
     ];
 
-    // Rentang Waktu Digital Standar (00:00 - 23:59)
     const TIME_SLOTS = [
       { label: "00:00 - 02:00", start: "00:00", end: "02:00" },
       { label: "02:00 - 04:00", start: "02:00", end: "04:00" },
@@ -183,7 +182,7 @@
 
       const [statPeriod, setStatPeriod] = useState('daily');
       const [customStatDate, setCustomStatDate] = useState('2026-10-27');
-      const [customStatMonth, setCustomStatMonth] = useState(9); // Oktober
+      const [customStatMonth, setCustomStatMonth] = useState(9);
       const [customStatYear, setCustomStatYear] = useState(2026);
 
       const [searchQuery, setSearchQuery] = useState('');
@@ -192,7 +191,7 @@
       const [filterDate, setFilterDate] = useState('');
       const [filterHour, setFilterHour] = useState('ALL');
 
-      // Firebase Sync
+      // Firebase Realtime Listener
       useEffect(() => {
         if (!firebaseDb) return;
         const refSch = firebaseDb.ref('alisya_schedules');
@@ -306,6 +305,21 @@
         const copy = { ...sch, id: 'sch_' + Date.now(), title: sch.title + ' (Copy)' };
         saveSchedulesToCloud([...schedules, copy]);
         notify('📋 Jadwal berhasil disalin!');
+      };
+
+      // 🌟 FITUR 1-KLIK PRESET SHIFT MOM UUNG OTOMATIS
+      const applyMomUungPreset = (shiftNum, start, end) => {
+        const momUungBrand = brands.find(b => b.id === 'b_momuung') || { color: '#B6D7A8' };
+        setFormData(prev => ({
+          ...prev,
+          title: `Shift ${shiftNum} Mom Uung`,
+          brand_id: 'b_momuung',
+          status: 'LIVE',
+          color: momUungBrand.color,
+          start_time: start,
+          end_time: end
+        }));
+        notify(`⚡ Berhasil memilih Shift ${shiftNum} (${start} - ${end})`);
       };
 
       const handleSave = (e) => {
@@ -428,10 +442,6 @@
         });
       }, [selectedDaySchedules]);
 
-      // 🌟 ATURAN KEPADATAN HARIAN RESMI SESUAI INSTRUKSI:
-      // FULL SCHEDULE: >= 10 Jam produktif
-      // MEDIUM: 8 s/d 9.9 Jam produktif
-      // LOW: < 8 Jam produktif (> 0 Jam)
       const getDayScheduleDensity = (dateStr) => {
         const dayShifts = schedules.filter(s => s.date === dateStr);
         if (dayShifts.length === 0) return { text: '✨ FREE SLOT', badge: 'bg-slate-100 text-slate-600 border-slate-200' };
@@ -440,7 +450,6 @@
         if (hasOff) return { text: '☕ LIBUR / OFF', badge: 'bg-rose-100 text-rose-800 border-rose-300' };
 
         let productiveHours = 0;
-
         dayShifts.forEach(s => {
           if (s.status !== 'Tidur' && s.brand_id !== 'b_sleep') {
             productiveHours += calculateDurationHours(s.start_time, s.end_time);
@@ -711,7 +720,7 @@
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="font-extrabold text-base tracking-wide">Alisya Schedule</h1>
                   <span className="bg-white/15 text-rose-200 border border-white/25 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider">
-                    v2.9.0-PRO
+                    v2.8.0-PRO
                   </span>
                   {isAdmin ? (
                     <span className="bg-amber-400 text-amber-950 px-2 py-0.5 rounded-md text-[10px] font-black shadow">👑 ADMIN</span>
@@ -1093,7 +1102,6 @@
                                     </div>
                                   </td>
 
-                                  {/* STATUS KEPADATAN HARI INI */}
                                   <td className="border-r border-slate-200 p-1.5 text-center whitespace-nowrap">
                                     <span className={`px-2 py-1 rounded-xl text-[10px] border shadow-xs ${density.badge}`}>
                                       {density.text}
@@ -1988,7 +1996,7 @@
             </div>
           )}
 
-          {/* MODAL FORM INPUT JADWAL */}
+          {/* 🌟 MODAL FORM INPUT JADWAL: DILENGKAPI TOMBOL 1-KLIK PRESET SHIFT MOM UUNG */}
           {modalOpen && (
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
               <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
@@ -1997,6 +2005,51 @@
                   <button onClick={() => setModalOpen(false)} className="text-rose-200 hover:text-white font-bold text-lg">✕</button>
                 </div>
                 <form onSubmit={handleSave} className="p-5 space-y-3 text-xs">
+                  
+                  {/* ⚡ PANEL 1-KLIK PRESET SHIFT MOM UUNG */}
+                  <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-amber-950 flex items-center gap-1.5 text-[11px]">
+                        <span>⚡</span><span>Pilihan Cepat Shift Mom Uung (1-Klik Isi):</span>
+                      </span>
+                      <span className="text-[9px] font-bold bg-amber-200/70 text-amber-900 px-2 py-0.5 rounded-full">Auto-Fill</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 font-bold font-mono text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => applyMomUungPreset(1, "05:00", "13:00")}
+                        className="bg-white border border-amber-300 hover:bg-amber-100 text-amber-950 p-2 rounded-xl text-left shadow-xs transition active:scale-95 flex flex-col"
+                      >
+                        <span className="font-black text-emerald-800">Shift 1 (Pagi)</span>
+                        <span className="text-[9px] text-slate-500">05:00 - 13:00</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMomUungPreset(2, "11:00", "19:00")}
+                        className="bg-white border border-amber-300 hover:bg-amber-100 text-amber-950 p-2 rounded-xl text-left shadow-xs transition active:scale-95 flex flex-col"
+                      >
+                        <span className="font-black text-emerald-800">Shift 2 (Siang)</span>
+                        <span className="text-[9px] text-slate-500">11:00 - 19:00</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMomUungPreset(3, "16:00", "23:59")}
+                        className="bg-white border border-amber-300 hover:bg-amber-100 text-amber-950 p-2 rounded-xl text-left shadow-xs transition active:scale-95 flex flex-col"
+                      >
+                        <span className="font-black text-emerald-800">Shift 3 (Sore)</span>
+                        <span className="text-[9px] text-slate-500">16:00 - 23:59</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMomUungPreset(4, "00:00", "07:00")}
+                        className="bg-white border border-amber-300 hover:bg-amber-100 text-amber-950 p-2 rounded-xl text-left shadow-xs transition active:scale-95 flex flex-col"
+                      >
+                        <span className="font-black text-emerald-800">Shift 4 (Subuh)</span>
+                        <span className="text-[9px] text-slate-500">00:00 - 07:00</span>
+                      </button>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">Judul Shift / Aktivitas *</label>
                     <input
@@ -2004,7 +2057,7 @@
                       required
                       value={formData.title}
                       onChange={e => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="Contoh: Shift Mom Uung / Me Time / Take Konten"
+                      placeholder="Contoh: Shift 1 Mom Uung / Me Time / Take Konten"
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 font-bold text-slate-900 focus:ring-2 focus:ring-maroon focus:outline-none"
                     />
                   </div>
