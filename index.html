@@ -307,7 +307,7 @@
         notify('📋 Jadwal berhasil disalin!');
       };
 
-      // 🌟 FITUR 1-KLIK PRESET SHIFT MOM UUNG OTOMATIS
+      // ⚡ PRESET SHIFT MOM UUNG
       const applyMomUungPreset = (shiftNum, start, end) => {
         const momUungBrand = brands.find(b => b.id === 'b_momuung') || { color: '#B6D7A8' };
         setFormData(prev => ({
@@ -319,7 +319,22 @@
           start_time: start,
           end_time: end
         }));
-        notify(`⚡ Berhasil memilih Shift ${shiftNum} (${start} - ${end})`);
+        notify(`⚡ Berhasil memilih Shift ${shiftNum} Mom Uung (${start} - ${end})`);
+      };
+
+      // ⚡ PRESET SHIFT AQUAPRESS
+      const applyAquaPressPreset = (shiftNum, start, end) => {
+        const aquaBrand = brands.find(b => b.id === 'b_aquapress') || { color: '#00FFFF' };
+        setFormData(prev => ({
+          ...prev,
+          title: `Shift ${shiftNum} AquaPress`,
+          brand_id: 'b_aquapress',
+          status: 'LIVE',
+          color: aquaBrand.color,
+          start_time: start,
+          end_time: end
+        }));
+        notify(`💧 Berhasil memilih Shift ${shiftNum} AquaPress (${start} - ${end})`);
       };
 
       const handleSave = (e) => {
@@ -710,7 +725,7 @@
             </div>
           )}
 
-          {/* HEADER UTAMA */}
+          {/* HEADER UTAMA: Alisya Schedule */}
           <header className="bg-maroon text-white px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3 shadow-lg sticky top-0 z-40">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center font-black text-rose-300 text-xl border border-white/20 shadow-inner">
@@ -720,7 +735,7 @@
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="font-extrabold text-base tracking-wide">Alisya Schedule</h1>
                   <span className="bg-white/15 text-rose-200 border border-white/25 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider">
-                    v3.2-Ultra PRO
+                    v5.7-Ultra PRO
                   </span>
                   {isAdmin ? (
                     <span className="bg-amber-400 text-amber-950 px-2 py-0.5 rounded-md text-[10px] font-black shadow">👑 ADMIN</span>
@@ -1996,7 +2011,7 @@
             </div>
           )}
 
-          {/* 🌟 MODAL FORM INPUT JADWAL: DILENGKAPI TOMBOL 1-KLIK PRESET SHIFT MOM UUNG */}
+          {/* 🌟 MODAL FORM INPUT JADWAL: DILENGKAPI TOMBOL 1-KLIK PRESET MOM UUNG & AQUAPRESS */}
           {modalOpen && (
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
               <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
@@ -2010,7 +2025,7 @@
                   <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-black text-amber-950 flex items-center gap-1.5 text-[11px]">
-                        <span>⚡</span><span>Pilihan Cepat Shift Mom Uung (1-Klik Isi):</span>
+                        <span>🍼</span><span>Shift Cepat Mom Uung (1-Klik Isi):</span>
                       </span>
                       <span className="text-[9px] font-bold bg-amber-200/70 text-amber-900 px-2 py-0.5 rounded-full">Auto-Fill</span>
                     </div>
@@ -2050,6 +2065,42 @@
                     </div>
                   </div>
 
+                  {/* 💧 PANEL 1-KLIK PRESET SHIFT AQUAPRESS */}
+                  <div className="bg-cyan-50 border border-cyan-200 p-3 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-cyan-950 flex items-center gap-1.5 text-[11px]">
+                        <span>💧</span><span>Shift Cepat AquaPress (1-Klik Isi):</span>
+                      </span>
+                      <span className="text-[9px] font-bold bg-cyan-200/70 text-cyan-900 px-2 py-0.5 rounded-full">Auto-Fill</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5 font-bold font-mono text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => applyAquaPressPreset(1, "08:00", "12:00")}
+                        className="bg-white border border-cyan-300 hover:bg-cyan-100 text-cyan-950 p-2 rounded-xl text-left shadow-xs transition active:scale-95 flex flex-col"
+                      >
+                        <span className="font-black text-cyan-800">Shift 1</span>
+                        <span className="text-[9px] text-slate-500">08:00 - 12:00</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyAquaPressPreset(2, "12:00", "16:00")}
+                        className="bg-white border border-cyan-300 hover:bg-cyan-100 text-cyan-950 p-2 rounded-xl text-left shadow-xs transition active:scale-95 flex flex-col"
+                      >
+                        <span className="font-black text-cyan-800">Shift 2</span>
+                        <span className="text-[9px] text-slate-500">12:00 - 16:00</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyAquaPressPreset(3, "16:00", "20:00")}
+                        className="bg-white border border-cyan-300 hover:bg-cyan-100 text-cyan-950 p-2 rounded-xl text-left shadow-xs transition active:scale-95 flex flex-col"
+                      >
+                        <span className="font-black text-cyan-800">Shift 3</span>
+                        <span className="text-[9px] text-slate-500">16:00 - 20:00</span>
+                      </button>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">Judul Shift / Aktivitas *</label>
                     <input
@@ -2057,7 +2108,7 @@
                       required
                       value={formData.title}
                       onChange={e => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="Contoh: Shift 1 Mom Uung / Me Time / Take Konten"
+                      placeholder="Contoh: Shift Mom Uung / AquaPress / Me Time / Take Konten"
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 font-bold text-slate-900 focus:ring-2 focus:ring-maroon focus:outline-none"
                     />
                   </div>
