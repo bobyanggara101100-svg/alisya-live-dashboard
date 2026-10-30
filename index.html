@@ -112,6 +112,285 @@
       { label: "22:00 - 23:59", start: "22:00", end: "23:59" }
     ];
 
+    // --- DICTIONARY MULTI-BAHASA ---
+const TRANSLATIONS = {
+  id: {
+    radarTitle: "Radar Jadwal Alisya",
+    availableTitle: "Available Schedule (Slot Jam Kosong)",
+    allSlotsFilled: "Semua slot jam di tanggal ini sudah terisi penuh!",
+    slotsReady: "Slot Siap Pakai",
+    calendarTitle: "Kalender Tanggal",
+    sessionList: "Daftar Sesi",
+    noSchedule: "Tidak Ada Jadwal di Tanggal Ini",
+    noScheduleSub: "Alisya libur atau seluruh slot jam di tanggal ini masih kosong.",
+    btnShareWA: "Share WhatsApp",
+    btnAddSession: "Tambah Sesi",
+    jump: "Lompat:",
+    today: "Hari Ini",
+    tomorrow: "Besok",
+    dayAfter: "Lusa",
+    tabAgenda: "Agenda Harian",
+    tabSpreadsheet: "Kalender Spreadsheet",
+    tabKPI: "KPI & Diagram Grafik",
+    tabList: "Daftar Lengkap",
+    tabColors: "Atur Warna",
+    btnExportCSV: "Ekspor CSV (Excel)",
+    btnAddSch: "Tambah Jadwal",
+    statFilterTitle: "Filter Rentang Waktu Statistik",
+    statFilterDesc: "Pilih periode dan tanggal untuk mengevaluasi jam kerja, tidur, dan me time:",
+    daily: "Harian",
+    weekly: "Mingguan",
+    monthly: "Bulanan",
+    yearly: "Tahunan",
+    totalLive: "TOTAL SHIFT LIVE",
+    takeKonten: "TAKE KONTEN VIDEO",
+    sleepTime: "JAM TIDUR / ISTIRAHAT",
+    meTime: "ME TIME",
+    offDay: "HARI LIBUR / OFF",
+    hoursLive: "Jam Streaming",
+    hoursProd: "Jam Produksi",
+    hoursSleep: "Jam Istirahat",
+    hoursMeTime: "Jadwal Me Time & Relax",
+    hoursOff: "Hari Libur Penuh",
+    propTitle: "PROPORSI WAKTU ALISYA",
+    barTitle: "BEBAN AKTIVITAS PER KATEGORI",
+    statusFree: "FREE SLOT",
+    statusLow: "LOW",
+    statusMed: "MEDIUM",
+    statusFull: "FULL SCHEDULE",
+    statusOff: "LIBUR / OFF"
+  },
+  en: {
+    radarTitle: "Alisya's Schedule Radar",
+    availableTitle: "Available Schedule (Empty Slots)",
+    allSlotsFilled: "All time slots for this date are fully booked!",
+    slotsReady: "Slots Available",
+    calendarTitle: "Date Calendar",
+    sessionList: "Session List",
+    noSchedule: "No Schedule for this Date",
+    noScheduleSub: "Alisya is off or all slots for this date are currently empty.",
+    btnShareWA: "Share to WhatsApp",
+    btnAddSession: "Add Session",
+    jump: "Quick Jump:",
+    today: "Today",
+    tomorrow: "Tomorrow",
+    dayAfter: "Day After",
+    tabAgenda: "Daily Agenda",
+    tabSpreadsheet: "Spreadsheet Calendar",
+    tabKPI: "KPI & Charts",
+    tabList: "Complete List",
+    tabColors: "Theme Colors",
+    btnExportCSV: "Export CSV (Excel)",
+    btnAddSch: "New Schedule",
+    statFilterTitle: "Statistical Time Range Filter",
+    statFilterDesc: "Select period and date to evaluate work, sleep, and personal time:",
+    daily: "Daily",
+    weekly: "Weekly",
+    monthly: "Monthly",
+    yearly: "Yearly",
+    totalLive: "TOTAL LIVE SHIFTS",
+    takeKonten: "VIDEO CONTENT SHOOT",
+    sleepTime: "SLEEP & REST TIME",
+    meTime: "ME TIME",
+    offDay: "DAY OFF",
+    hoursLive: "Streaming Hours",
+    hoursProd: "Production Hours",
+    hoursSleep: "Rest Hours",
+    hoursMeTime: "Me Time & Relax Schedule",
+    hoursOff: "Full Days Off",
+    propTitle: "ALISYA TIME PROPORTION",
+    barTitle: "ACTIVITY LOAD PER CATEGORY",
+    statusFree: "FREE SLOT",
+    statusLow: "LOW",
+    statusMed: "MEDIUM",
+    statusFull: "FULL SCHEDULE",
+    statusOff: "DAY OFF"
+  },
+  de: {
+    radarTitle: "Alisyas Termin-Radar",
+    availableTitle: "Verfügbarer Zeitplan (Freie Zeitfenster)",
+    allSlotsFilled: "Alle Zeitfenster an diesem Datum sind belegt!",
+    slotsReady: "Freie Zeitfenster",
+    calendarTitle: "Datumskalender",
+    sessionList: "Sitzungsliste",
+    noSchedule: "Kein Zeitplan für dieses Datum",
+    noScheduleSub: "Alisya hat frei oder alle Zeitfenster sind noch verfügbar.",
+    btnShareWA: "Auf WhatsApp teilen",
+    btnAddSession: "Sitzung hinzufügen",
+    jump: "Schnellsprung:",
+    today: "Heute",
+    tomorrow: "Morgen",
+    dayAfter: "Übermorgen",
+    tabAgenda: "Tagesordnung",
+    tabSpreadsheet: "Tabellenkalender",
+    tabKPI: "KPI & Diagramme",
+    tabList: "Vollständige Liste",
+    tabColors: "Farben anpassen",
+    btnExportCSV: "CSV-Export (Excel)",
+    btnAddSch: "Termin hinzufügen",
+    statFilterTitle: "Statistik-Zeitbereichsfilter",
+    statFilterDesc: "Wählen Sie Zeitraum und Datum zur Auswertung von Arbeit, Schlaf und Me-Time:",
+    daily: "Täglich",
+    weekly: "Wöchentlich",
+    monthly: "Monatlich",
+    yearly: "Jährlich",
+    totalLive: "GESAMT LIVE-SCHICHTEN",
+    takeKonten: "VIDEO-DREH",
+    sleepTime: "SCHLAF & RUHEZEIT",
+    meTime: "ME TIME",
+    offDay: "FREIER TAG / AUS",
+    hoursLive: "Streaming-Stunden",
+    hoursProd: "Produktionsstunden",
+    hoursSleep: "Ruhestunden",
+    hoursMeTime: "Me-Time & Entspannung",
+    hoursOff: "Ganze freie Tage",
+    propTitle: "ZEITVERTEILUNG ALISYA",
+    barTitle: "AKTIVITÄTSBELASTUNG NACH KATEGORIE",
+    statusFree: "FREIER SLOT",
+    statusLow: "GERING",
+    statusMed: "MITTEL",
+    statusFull: "VOLL BELEGT",
+    statusOff: "FREI / AUS"
+  },
+  zh: {
+    radarTitle: "Alisya 日程雷达",
+    availableTitle: "可用时间表（空闲时段）",
+    allSlotsFilled: "该日期的所有时间段已满！",
+    slotsReady: "可用时段",
+    calendarTitle: "日期日历",
+    sessionList: "活动列表",
+    noSchedule: "该日期暂无日程",
+    noScheduleSub: "Alisya 休息或所有时段均可自由安排。",
+    btnShareWA: "分享至 WhatsApp",
+    btnAddSession: "添加时段",
+    jump: "快速跳转:",
+    today: "今天",
+    tomorrow: "明天",
+    dayAfter: "后天",
+    tabAgenda: "每日议程",
+    tabSpreadsheet: "电子表格日历",
+    tabKPI: "KPI 与图表",
+    tabList: "完整列表",
+    tabColors: "调整颜色",
+    btnExportCSV: "导出 CSV (Excel)",
+    btnAddSch: "新增日程",
+    statFilterTitle: "统计时间范围筛选",
+    statFilterDesc: "选择周期和日期以评估工作、睡眠和个人独处时间：",
+    daily: "按日",
+    weekly: "按周",
+    monthly: "按月",
+    yearly: "按年",
+    totalLive: "直播总班次",
+    takeKonten: "视频内容拍摄",
+    sleepTime: "睡眠与休息时间",
+    meTime: "个人专属时光",
+    offDay: "休息日 / 放假",
+    hoursLive: "直播时长（小时）",
+    hoursProd: "制作时长（小时）",
+    hoursSleep: "休息时长（小时）",
+    hoursMeTime: "放松安排",
+    hoursOff: "完整休息天数",
+    propTitle: "ALISYA 时间占比",
+    barTitle: "各分类活动负荷",
+    statusFree: "空闲时段",
+    statusLow: "较少",
+    statusMed: "中等",
+    statusFull: "已排满",
+    statusOff: "放假 / 休息"
+  },
+  jv: {
+    radarTitle: "Radar Jadwal Alisya",
+    availableTitle: "Jadwal Suwung (Jam Sing Iso Dienggo)",
+    allSlotsFilled: "Kabeh jam ing tanggal iki wis kebak!",
+    slotsReady: "Slot Siap Dienggo",
+    calendarTitle: "Tanggalan Tanggal",
+    sessionList: "Daftar Sesi",
+    noSchedule: "Ora Ana Jadwal Ing Tanggal Iki",
+    noScheduleSub: "Alisya prei utawa kabeh jam isih suwung bebas dipilih.",
+    btnShareWA: "Bagekna ning WA",
+    btnAddSession: "Tambah Sesi",
+    jump: "Mencolot:",
+    today: "Dino Iki",
+    tomorrow: "Sesuk",
+    dayAfter: "Mben",
+    tabAgenda: "Agenda Sedina-dina",
+    tabSpreadsheet: "Tanggalan Spreadsheet",
+    tabKPI: "KPI & Grafik",
+    tabList: "Daftar Lengkap",
+    tabColors: "Atur Werno",
+    btnExportCSV: "Ekspor CSV (Excel)",
+    btnAddSch: "Tambah Jadwal",
+    statFilterTitle: "Saringan Wektu Statistik",
+    statFilterDesc: "Pilih mangsa lan tanggal kanggo ndelok jam kerjo, turu, lan me-time:",
+    daily: "Dinan",
+    weekly: "Minggon",
+    monthly: "Wulanan",
+    yearly: "Tahunan",
+    totalLive: "TOTAL SHIFT LIVE",
+    takeKonten: "TAKE KONTEN VIDEO",
+    sleepTime: "WEKTU TURU / LEREN",
+    meTime: "ME TIME",
+    offDay: "DINO PREI / OFF",
+    hoursLive: "Jam Streaming",
+    hoursProd: "Jam Nggawe Konten",
+    hoursSleep: "Jam Leren / Turu",
+    hoursMeTime: "Jadwal Santai & Relax",
+    hoursOff: "Dino Prei Total",
+    propTitle: "BAGIAN WEKTU ALISYA",
+    barTitle: "BEBAN KERJO PER KATEGORI",
+    statusFree: "SLOT SUWUNG",
+    statusLow: "ENTENG",
+    statusMed: "SEDENGAN",
+    statusFull: "KEBAK BANGET",
+    statusOff: "PREI / OFF"
+  },
+  min: {
+    radarTitle: "Radar Jadwal Alisya",
+    availableTitle: "Jadwal Tasuo (Jam Kosong Nan Bisa Dipakai)",
+    allSlotsFilled: "Sadonyo jam di tanggal ko lah panuah!",
+    slotsReady: "Slot Siap Pakai",
+    calendarTitle: "Kalender Tanggal",
+    sessionList: "Daftar Kagiatan",
+    noSchedule: "Indak Ado Jadwal Di Tanggal Ko",
+    noScheduleSub: "Alisya libur atau sadoalah jam masih kosong rancak dipiliah.",
+    btnShareWA: "Bagikan ka WA",
+    btnAddSession: "Tambah Sesi",
+    jump: "Lompek:",
+    today: "Hari Ko",
+    tomorrow: "Bisuak",
+    dayAfter: "Luso",
+    tabAgenda: "Agenda Saari-ari",
+    tabSpreadsheet: "Kalender Spreadsheet",
+    tabKPI: "KPI & Diagram Grafik",
+    tabList: "Daftar Langkok",
+    tabColors: "Atua Wano",
+    btnExportCSV: "Ekspor CSV (Excel)",
+    btnAddSch: "Tambah Jadwal",
+    statFilterTitle: "Sariangan Wakatu Statistik",
+    statFilterDesc: "Piliah periode jo tanggal untuak manilai jam karajo, lalok, jo me-time:",
+    daily: "Harian",
+    weekly: "Mingguan",
+    monthly: "Bulanan",
+    yearly: "Tahunan",
+    totalLive: "TOTAL SHIFT LIVE",
+    takeKonten: "BAbUEK KONTEN VIDEO",
+    sleepTime: "JAM LALOK / ISTIRAHAT",
+    meTime: "ME TIME",
+    offDay: "HARI LIBUR / OFF",
+    hoursLive: "Jam Streaming",
+    hoursProd: "Jam Baproduksi",
+    hoursSleep: "Jam Lalok / Sanang",
+    hoursMeTime: "Jadwal Manjakan Diri",
+    hoursOff: "Hari Libur Panuah",
+    propTitle: "PARANDIANGAN WAKATU ALISYA",
+    barTitle: "BABAN KARAJO TIOK KATEGORI",
+    statusFree: "SLOT KOSONG",
+    statusLow: "RINGAN",
+    statusMed: "SEDANG",
+    statusFull: "PANUAH BANA",
+    statusOff: "LIBUR / OFF"
+  }
+};
     const START_TIME_OPTIONS = [];
     for (let h = 0; h < 24; h++) {
       const hh = String(h).padStart(2, '0');
@@ -145,6 +424,18 @@
       }
       return Math.round((diff / 60) * 10) / 10;
     };
+
+   const [lang, setLang] = useState(() => {
+  return localStorage.getItem('alisya_lang') || 'id';
+});
+
+const handleSetLang = (newLang) => {
+  setLang(newLang);
+  localStorage.setItem('alisya_lang', newLang);
+};
+
+// Variabel pintas untuk memanggil teks sesuai bahasa yang aktif:
+const t = TRANSLATIONS[lang] || TRANSLATIONS.id; 
 
     function App() {
       const realTodayStr = useMemo(() => {
@@ -750,6 +1041,22 @@
               </div>
             </div>
 
+            {/* DROPDOWN PILIHAN BAHASA */}
+<div className="flex items-center bg-black/30 px-2 py-1 rounded-2xl border border-white/10 shadow-inner">
+  <span className="text-xs mr-1">🌐</span>
+  <select
+    value={lang}
+    onChange={(e) => handleSetLang(e.target.value)}
+    className="bg-transparent text-white font-black text-xs border-none focus:outline-none cursor-pointer"
+  >
+    <option value="id" className="bg-slate-900 text-white">🇮🇩 Indonesia</option>
+    <option value="en" className="bg-slate-900 text-white">🇬🇧 English</option>
+    <option value="de" className="bg-slate-900 text-white">🇩🇪 Deutsch</option>
+    <option value="zh" className="bg-slate-900 text-white">🇨🇳 中文 (Mandarin)</option>
+    <option value="jv" className="bg-slate-900 text-white">🌾 Basa Jawa</option>
+    <option value="min" className="bg-slate-900 text-white">🐃 Baso Minang</option>
+  </select>
+</div>
             {/* DUAL-MODE TOGGLE SWITCHER (HP vs PC) */}
             <div className="flex items-center bg-black/30 p-1 rounded-2xl border border-white/10 shadow-inner">
               <button
